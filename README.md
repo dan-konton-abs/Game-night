@@ -96,6 +96,10 @@ Any small Node host works (Render, Railway, Fly.io, a cheap VPS, etc.):
 Then share the public URL with the group instead of `localhost:5173`, same
 Discord call as always, new tab pointed at the board.
 
+Self-hosting on your own hardware (e.g. a Proxmox LXC) instead of a cloud
+host? See [DEPLOY.md](DEPLOY.md) for a full runbook, including exposing it
+publicly via Cloudflare Tunnel without opening any ports on your router.
+
 ## Notes on the data model
 
 Everything lives in one JSON blob per room (`server/data/<CODE>.json`):
