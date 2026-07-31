@@ -83,9 +83,27 @@ function isGM(room, playerId) {
   return room.gmPlayerId === playerId;
 }
 
+// Tracks each player's current socket so whispers can be delivered to exactly
+// the two people involved, instead of the room-wide state broadcast.
+const playerSockets = new Map();
+
 function broadcast(room) {
   store.touch(room.code);
-  io.to(room.code).emit("room:state", room);
+  // Whispers are deliberately excluded here - they're delivered by direct
+  // socket targeting instead, so they never pass through everyone's client.
+  const { whispers, ...publicState } = room;
+  io.to(room.code).emit("room:state", publicState);
+}
+
+function sendWhisperHistory(socket, room, playerId) {
+  const threads = {};
+  for (const [key, messages] of Object.entries(room.whispers || {})) {
+    if (!key.includes(playerId)) continue;
+    const [a, b] = key.split("|");
+    const otherId = a === playerId ? b : a;
+    threads[otherId] = messages;
+  }
+  socket.emit("chat:whisperHistory", { threads });
 }
 
 function publicError(socket, message) {
@@ -110,8 +128,10 @@ io.on("connection", (socket) => {
       socket.join(room.code);
       socket.data.roomCode = room.code;
       socket.data.playerId = playerId;
+      playerSockets.set(playerId, socket.id);
 
       broadcast(room);
+      sendWhisperHistory(socket, room, playerId);
       ack?.({ ok: true, code: room.code, role: "gm" });
     } catch (err) {
       ack?.({ ok: false, error: err.message });
@@ -152,8 +172,10 @@ io.on("connection", (socket) => {
       socket.join(room.code);
       socket.data.roomCode = room.code;
       socket.data.playerId = playerId;
+      playerSockets.set(playerId, socket.id);
 
       broadcast(room);
+      sendWhisperHistory(socket, room, playerId);
       ack?.({ ok: true, code: room.code, role });
     } catch (err) {
       ack?.({ ok: false, error: err.message });
@@ -303,7 +325,7 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
-  socket.on("chat:send", ({ text }) => {
+  socket.on("chat:send", ({ text, toPlayerId }) => {
     const room = currentRoom();
     if (!room) return;
     const playerId = socket.data.playerId;
@@ -312,6 +334,32 @@ io.on("connection", (socket) => {
 
     const cleanText = clampText(text, 500).trim();
     if (!cleanText) return;
+
+    if (toPlayerId) {
+      const recipient = room.players[toPlayerId];
+      if (!recipient || toPlayerId === playerId) {
+        return publicError(socket, "Can't send a whisper to that person.");
+      }
+
+      const key = store.whisperKey(playerId, toPlayerId);
+      const thread = room.whispers[key] || [];
+      const message = {
+        id: store.newId(),
+        fromId: playerId,
+        fromName: player.name,
+        toId: toPlayerId,
+        toName: recipient.name,
+        text: cleanText,
+        timestamp: Date.now(),
+      };
+      room.whispers[key] = [...thread, message].slice(-200);
+      store.touch(room.code);
+
+      // Deliver only to the two people involved - never the room-wide broadcast.
+      const targetSocketIds = new Set([socket.id, playerSockets.get(toPlayerId)].filter(Boolean));
+      targetSocketIds.forEach((sid) => io.to(sid).emit("chat:whisper", message));
+      return;
+    }
 
     room.chat.push({
       id: store.newId(),

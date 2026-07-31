@@ -6,7 +6,7 @@ import CharacterSheet from "./CharacterSheet.jsx";
 import PlayersPanel from "./PlayersPanel.jsx";
 import GMPanel from "./GMPanel.jsx";
 
-export default function GameScreen({ room, playerId, identity, onLeave }) {
+export default function GameScreen({ room, whispers, playerId, identity, onLeave }) {
   const me = room.players[playerId];
   const isGM = room.gmPlayerId === playerId;
   const [tab, setTab] = useState("chat");
@@ -54,7 +54,7 @@ export default function GameScreen({ room, playerId, identity, onLeave }) {
           </nav>
 
           <div className="tab-content">
-            {tab === "chat" && <ChatPanel room={room} playerId={playerId} />}
+            {tab === "chat" && <ChatPanel room={room} whispers={whispers} playerId={playerId} />}
             {tab === "dice" && <DicePanel room={room} />}
             {tab === "character" && (
               <CharacterSheet

@@ -52,7 +52,13 @@ function blankRoom(code) {
     players: {},
     diceLog: [],
     chat: [],
+    whispers: {},
   };
+}
+
+/** Canonical, order-independent key for a private thread between two players. */
+function whisperKey(playerIdA, playerIdB) {
+  return [playerIdA, playerIdB].sort().join("|");
 }
 
 function getRoom(code) {
@@ -79,6 +85,7 @@ function ensureLoaded(code) {
     // Mark everyone offline on server restart; sockets will reconnect fresh.
     for (const p of Object.values(loaded.players)) p.online = false;
     if (!loaded.chat) loaded.chat = [];
+    if (!loaded.whispers) loaded.whispers = {};
     rooms.set(code, loaded);
     return loaded;
   }
@@ -95,5 +102,6 @@ module.exports = {
   createRoom,
   ensureLoaded,
   touch,
+  whisperKey,
   newId: nanoid,
 };
