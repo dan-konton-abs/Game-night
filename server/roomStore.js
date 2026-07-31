@@ -51,6 +51,7 @@ function blankRoom(code) {
     characters: {},
     players: {},
     diceLog: [],
+    chat: [],
   };
 }
 
@@ -77,6 +78,7 @@ function ensureLoaded(code) {
   if (loaded) {
     // Mark everyone offline on server restart; sockets will reconnect fresh.
     for (const p of Object.values(loaded.players)) p.online = false;
+    if (!loaded.chat) loaded.chat = [];
     rooms.set(code, loaded);
     return loaded;
   }

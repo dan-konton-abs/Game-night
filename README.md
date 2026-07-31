@@ -20,6 +20,9 @@ over-engineered. Ideate and extend from here.
   or reassign its owner.
 - **Dice.** Quick buttons for d4/d6/d8/d10/d12/d20/d100, or type a formula
   like `2d6+3`. Every roll is posted to a shared log everyone can see.
+- **Chat.** A shared text log alongside the board, for anything easier to
+  type than say over voice (links, OOC notes, etc). History persists with
+  the room.
 - **Character sheets.** Each person gets one sheet: name, class/role, level,
   HP/max HP, defense, a free-form list of attributes (add/rename/remove
   rows — so it fits a non-D&D system), inventory, and notes. The GM can view
@@ -28,7 +31,7 @@ over-engineered. Ideate and extend from here.
   a refresh or dropped connection rejoins you to the same seat.
 
 Not in the MVP (good candidates for v2+): fog of war, initiative
-tracker/turn order, measuring/rulers, layers, per-token vision, chat, richer
+tracker/turn order, measuring/rulers, layers, per-token vision, richer
 character sheet templates per system, authentication beyond a room code.
 
 ## Project layout

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import Board from "./Board.jsx";
+import ChatPanel from "./ChatPanel.jsx";
 import DicePanel from "./DicePanel.jsx";
 import CharacterSheet from "./CharacterSheet.jsx";
 import PlayersPanel from "./PlayersPanel.jsx";
@@ -8,11 +9,12 @@ import GMPanel from "./GMPanel.jsx";
 export default function GameScreen({ room, playerId, identity, onLeave }) {
   const me = room.players[playerId];
   const isGM = room.gmPlayerId === playerId;
-  const [tab, setTab] = useState("dice");
+  const [tab, setTab] = useState("chat");
   const [viewCharacterId, setViewCharacterId] = useState(playerId);
 
   const tabs = useMemo(() => {
     const base = [
+      { id: "chat", label: "💬 Chat" },
       { id: "dice", label: "🎲 Dice" },
       { id: "character", label: "📜 Character" },
       { id: "players", label: "👥 Players" },
@@ -52,6 +54,7 @@ export default function GameScreen({ room, playerId, identity, onLeave }) {
           </nav>
 
           <div className="tab-content">
+            {tab === "chat" && <ChatPanel room={room} playerId={playerId} />}
             {tab === "dice" && <DicePanel room={room} />}
             {tab === "character" && (
               <CharacterSheet

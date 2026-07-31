@@ -414,6 +414,48 @@ label {
   font-size: 0.8rem;
 }
 
+/* Chat */
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.chat-message {
+  background: var(--panel-alt);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.chat-message.mine {
+  border-left: 3px solid var(--accent);
+}
+
+.chat-message-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-input-form {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input-form input {
+  flex: 1;
+}
+
 /* Character sheet */
 .row {
   display: grid;
