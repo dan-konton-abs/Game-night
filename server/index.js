@@ -303,6 +303,28 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
+  socket.on("chat:send", ({ text }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    const player = room.players[playerId];
+    if (!player) return;
+
+    const cleanText = clampText(text, 500).trim();
+    if (!cleanText) return;
+
+    room.chat.push({
+      id: store.newId(),
+      playerId,
+      name: player.name,
+      text: cleanText,
+      timestamp: Date.now(),
+    });
+    room.chat = room.chat.slice(-200);
+
+    broadcast(room);
+  });
+
   socket.on("disconnect", () => {
     const room = currentRoom();
     if (!room) return;
