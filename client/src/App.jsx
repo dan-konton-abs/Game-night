@@ -7,6 +7,7 @@ export default function App() {
   const [playerId] = useState(getOrCreatePlayerId);
   const [identity, setIdentity] = useState(loadIdentity);
   const [room, setRoom] = useState(null);
+  const [whispers, setWhispers] = useState({});
   const [connected, setConnected] = useState(false);
   const [joinError, setJoinError] = useState(null);
   const [toast, setToast] = useState(null);
@@ -41,17 +42,31 @@ export default function App() {
       setToast(message);
       setTimeout(() => setToast(null), 4000);
     }
+    function onWhisperHistory({ threads }) {
+      setWhispers(threads || {});
+    }
+    function onWhisper(message) {
+      const otherId = message.fromId === playerId ? message.toId : message.fromId;
+      setWhispers((prev) => ({
+        ...prev,
+        [otherId]: [...(prev[otherId] || []), message],
+      }));
+    }
 
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("room:state", onRoomState);
     socket.on("room:error", onRoomError);
+    socket.on("chat:whisperHistory", onWhisperHistory);
+    socket.on("chat:whisper", onWhisper);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("room:state", onRoomState);
       socket.off("room:error", onRoomError);
+      socket.off("chat:whisperHistory", onWhisperHistory);
+      socket.off("chat:whisper", onWhisper);
     };
   }, [playerId]);
 
@@ -89,6 +104,7 @@ export default function App() {
     clearIdentity();
     setIdentity(null);
     setRoom(null);
+    setWhispers({});
     socket.disconnect();
     socket.connect();
   }, []);
@@ -104,7 +120,13 @@ export default function App() {
           error={joinError}
         />
       ) : (
-        <GameScreen room={room} playerId={playerId} identity={identity} onLeave={handleLeave} />
+        <GameScreen
+          room={room}
+          whispers={whispers}
+          playerId={playerId}
+          identity={identity}
+          onLeave={handleLeave}
+        />
       )}
     </div>
   );

@@ -21,8 +21,15 @@ over-engineered. Ideate and extend from here.
 - **Dice.** Quick buttons for d4/d6/d8/d10/d12/d20/d100, or type a formula
   like `2d6+3`. Every roll is posted to a shared log everyone can see.
 - **Chat.** A shared text log alongside the board, for anything easier to
-  type than say over voice (links, OOC notes, etc). History persists with
-  the room.
+  type than say over voice (links, OOC notes, etc). A selector at the top
+  switches between the shared "Everyone" channel and a private 1:1 whisper
+  with any other player — the GM can quietly pass a player secret
+  instructions, and players can scheme without the GM seeing. Whispers are
+  enforced server-side (only ever sent to the two people involved, never
+  broadcast to the room), not just hidden in the UI — though if whoever
+  hosts the server is also a player, they'd still have disk access to the
+  stored messages, so it's private from the table, not from the host.
+  History persists with the room.
 - **Character sheets.** Each person gets one sheet: name, class/role, level,
   HP/max HP, defense, a free-form list of attributes (add/rename/remove
   rows — so it fits a non-D&D system), inventory, and notes. The GM can view

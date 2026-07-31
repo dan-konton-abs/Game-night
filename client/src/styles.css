@@ -9,6 +9,7 @@
   --accent: #5b8def;
   --accent-hover: #7ba3f5;
   --danger: #e2574c;
+  --warning: #e8a83c;
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
@@ -421,6 +422,19 @@ label {
   gap: 10px;
 }
 
+.chat-thread-select {
+  margin-bottom: 0;
+}
+
+.chat-private-banner {
+  background: rgba(232, 168, 60, 0.15);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
 .chat-messages {
   list-style: none;
   margin: 0;
@@ -430,6 +444,12 @@ label {
   gap: 8px;
   max-height: 55vh;
   overflow-y: auto;
+}
+
+.chat-messages.private {
+  background: rgba(232, 168, 60, 0.05);
+  border-radius: 8px;
+  padding: 6px;
 }
 
 .chat-message {
@@ -454,6 +474,10 @@ label {
 
 .chat-input-form input {
   flex: 1;
+}
+
+.chat-input-form.private input {
+  border-color: var(--warning);
 }
 
 /* Character sheet */
