@@ -71,12 +71,20 @@ export default function App() {
       setUser(null);
       setRoom(null);
     }
+    function onRoomDeleted({ reason }) {
+      setToast(reason || "This game is no longer available.");
+      setTimeout(() => setToast(null), 4000);
+      setRoom(null);
+      setWhispers({});
+      refreshGames();
+    }
 
     socket.on("room:state", onRoomState);
     socket.on("room:error", onRoomError);
     socket.on("chat:whisperHistory", onWhisperHistory);
     socket.on("chat:whisper", onWhisper);
     socket.on("connect_error", onConnectError);
+    socket.on("room:deleted", onRoomDeleted);
 
     return () => {
       socket.off("room:state", onRoomState);
@@ -84,8 +92,9 @@ export default function App() {
       socket.off("chat:whisperHistory", onWhisperHistory);
       socket.off("chat:whisper", onWhisper);
       socket.off("connect_error", onConnectError);
+      socket.off("room:deleted", onRoomDeleted);
     };
-  }, [user?.id]);
+  }, [user?.id, refreshGames]);
 
   useEffect(() => {
     if (user) connectSocket();
@@ -136,7 +145,7 @@ export default function App() {
       {!user ? (
         <AuthScreen onAuthenticated={handleAuthenticated} />
       ) : !room ? (
-        <MyGamesScreen user={user} games={games} onLogout={handleLogout} />
+        <MyGamesScreen user={user} games={games} onLogout={handleLogout} onRefreshGames={refreshGames} />
       ) : (
         <GameScreen
           room={room}

@@ -52,6 +52,12 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
     };
   }, [totalUnread]);
 
+  // If GM duties get transferred away from us mid-session, the GM Tools tab
+  // disappears - don't leave the user stranded on a tab that no longer exists.
+  useEffect(() => {
+    if (!isGM && tab === "gm") setTab("chat");
+  }, [isGM, tab]);
+
   const tabs = useMemo(() => {
     const base = [
       { id: "chat", label: "💬 Chat" },
@@ -117,7 +123,7 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
                 onChangeViewCharacter={setViewCharacterId}
               />
             )}
-            {tab === "players" && <PlayersPanel room={room} playerId={playerId} />}
+            {tab === "players" && <PlayersPanel room={room} playerId={playerId} isGM={isGM} />}
             {tab === "gm" && isGM && <GMPanel room={room} />}
           </div>
         </aside>

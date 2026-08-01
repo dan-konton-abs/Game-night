@@ -126,6 +126,57 @@ app.post("/api/auth/reset-password", authLimiter, async (req, res) => {
   res.json({ ok: true });
 });
 
+app.patch("/api/games/:code", requireAuth, (req, res) => {
+  const room = store.ensureLoaded(req.params.code);
+  if (!room) return res.status(404).json({ error: "Game not found." });
+  if (room.gmPlayerId !== req.user.id) {
+    return res.status(403).json({ error: "Only the Game Master can rename this game." });
+  }
+
+  room.name = clampText(req.body.name, 60).trim() || null;
+  store.touch(room.code);
+  const { whispers, ...publicState } = room;
+  io.to(room.code).emit("room:state", publicState);
+  res.json({ ok: true });
+});
+
+app.delete("/api/games/:code", requireAuth, (req, res) => {
+  const room = store.ensureLoaded(req.params.code);
+  if (!room) return res.status(404).json({ error: "Game not found." });
+  if (room.gmPlayerId !== req.user.id) {
+    return res.status(403).json({ error: "Only the Game Master can delete this game." });
+  }
+
+  io.to(room.code).emit("room:deleted", { reason: "The Game Master deleted this game." });
+  io.in(room.code).socketsLeave(room.code);
+  store.deleteRoom(room.code);
+  res.json({ ok: true });
+});
+
+app.post("/api/games/:code/leave", requireAuth, (req, res) => {
+  const room = store.ensureLoaded(req.params.code);
+  if (!room) return res.status(404).json({ error: "Game not found." });
+  const userId = req.user.id;
+  if (!room.players[userId]) return res.status(404).json({ error: "You're not part of this game." });
+  if (room.gmPlayerId === userId) {
+    return res.status(400).json({ error: "Transfer or delete the game instead of leaving as GM." });
+  }
+
+  delete room.players[userId];
+  delete room.characters[userId];
+  store.touch(room.code);
+
+  const targetSocketId = playerSockets.get(userId);
+  if (targetSocketId) {
+    io.to(targetSocketId).emit("room:deleted", { reason: "You left this game." });
+    io.sockets.sockets.get(targetSocketId)?.leave(room.code);
+  }
+
+  const { whispers, ...publicState } = room;
+  io.to(room.code).emit("room:state", publicState);
+  res.json({ ok: true });
+});
+
 if (fs.existsSync(CLIENT_DIST)) {
   app.use(express.static(CLIENT_DIST));
   app.get("*", (req, res) => {
@@ -419,6 +470,21 @@ io.on("connection", (socket) => {
         value: clampText(String(a.value ?? ""), 10),
       }));
     }
+
+    broadcast(room);
+  });
+
+  socket.on("game:transferGM", ({ toPlayerId }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can transfer that role.");
+    const target = room.players[toPlayerId];
+    if (!target || toPlayerId === playerId) return publicError(socket, "Can't transfer GM to that person.");
+
+    room.gmPlayerId = toPlayerId;
+    target.role = "gm";
+    room.players[playerId].role = "player";
 
     broadcast(room);
   });
