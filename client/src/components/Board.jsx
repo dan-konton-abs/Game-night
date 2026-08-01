@@ -3,13 +3,18 @@ import { socket } from "../socket.js";
 import TokenEditor from "./TokenEditor.jsx";
 
 const PALETTE = ["#5b8def", "#e2574c", "#4caf7d", "#e8a83c", "#9b6bd9", "#41b3c2"];
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.25;
 
 export default function Board({ room, playerId, isGM }) {
   const containerRef = useRef(null);
+  const viewportRef = useRef(null);
   const [dragTokenId, setDragTokenId] = useState(null);
   const [dragPos, setDragPos] = useState(null);
   const [editingTokenId, setEditingTokenId] = useState(null);
   const [addingToken, setAddingToken] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   const canControl = useCallback(
     (token) => isGM || token.ownerId === playerId,
@@ -21,6 +26,45 @@ export default function Board({ room, playerId, isGM }) {
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     return { x: Math.min(Math.max(x, 0), 100), y: Math.min(Math.max(y, 0), 100) };
+  }
+
+  // Zooms toward a specific screen point (cursor, or the viewport center for the
+  // +/- buttons), keeping whatever's under that point visually stable instead of
+  // jumping to the top-left corner - this is what makes zoom feel navigable
+  // rather than disorienting.
+  function zoomTo(nextZoom, anchorClientX, anchorClientY) {
+    const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(nextZoom * 100) / 100));
+    const viewport = viewportRef.current;
+    if (!viewport || clamped === zoom) return;
+
+    const rect = viewport.getBoundingClientRect();
+    const originX = anchorClientX - rect.left;
+    const originY = anchorClientY - rect.top;
+    const ratio = clamped / zoom;
+    const newScrollLeft = (viewport.scrollLeft + originX) * ratio - originX;
+    const newScrollTop = (viewport.scrollTop + originY) * ratio - originY;
+
+    setZoom(clamped);
+    requestAnimationFrame(() => {
+      viewport.scrollLeft = newScrollLeft;
+      viewport.scrollTop = newScrollTop;
+    });
+  }
+
+  function zoomByButton(delta) {
+    const rect = viewportRef.current?.getBoundingClientRect();
+    const cx = rect ? rect.left + rect.width / 2 : 0;
+    const cy = rect ? rect.top + rect.height / 2 : 0;
+    zoomTo(zoom + delta, cx, cy);
+  }
+
+  // Ctrl/Cmd+wheel (and trackpad pinch, which browsers report as ctrlKey wheel
+  // events) zooms; a plain wheel/trackpad scroll pans normally via the browser's
+  // native overflow scrolling, so both gestures stay available and don't conflict.
+  function onWheel(e) {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    zoomTo(zoom + (e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP), e.clientX, e.clientY);
   }
 
   function onTokenPointerDown(e, token) {
@@ -62,7 +106,7 @@ export default function Board({ room, playerId, isGM }) {
     ? {
         backgroundImage:
           "linear-gradient(to right, rgba(255,255,255,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.12) 1px, transparent 1px)",
-        backgroundSize: `${board.gridSize}px ${board.gridSize}px`,
+        backgroundSize: `${board.gridSize * zoom}px ${board.gridSize * zoom}px`,
       }
     : {};
 
@@ -70,60 +114,83 @@ export default function Board({ room, playerId, isGM }) {
 
   return (
     <div className="board-wrap">
-      <div
-        className="board"
-        ref={containerRef}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        style={{
-          backgroundImage: board.backgroundUrl ? `url(${board.backgroundUrl})` : undefined,
-        }}
-      >
-        <div className="board-grid" style={gridStyle} />
+      <div className="board-viewport-wrap">
+        <div className="board-viewport" ref={viewportRef} onWheel={onWheel}>
+          <div
+            className="board-canvas"
+            ref={containerRef}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            style={{
+              width: `${zoom * 100}%`,
+              height: `${zoom * 100}%`,
+              backgroundImage: board.backgroundUrl ? `url(${board.backgroundUrl})` : undefined,
+            }}
+          >
+            <div className="board-grid" style={gridStyle} />
 
-        {!board.backgroundUrl && (
-          <div className="board-empty-hint">
-            {isGM ? "Set a background image from GM Tools to begin." : "Waiting for the Game Master to set the map…"}
+            {!board.backgroundUrl && (
+              <div className="board-empty-hint">
+                {isGM
+                  ? "Set a background image from GM Tools to begin."
+                  : "Waiting for the Game Master to set the map…"}
+              </div>
+            )}
+
+            {tokens.map((token) => {
+              const dragging = dragTokenId === token.id;
+              const pos = dragging ? dragPos : token;
+              const mine = canControl(token);
+              return (
+                <div
+                  key={token.id}
+                  className={`token ${mine ? "mine" : ""} ${dragging ? "dragging" : ""}`}
+                  style={{
+                    left: `${pos.x}%`,
+                    top: `${pos.y}%`,
+                    width: token.size * zoom,
+                    height: token.size * zoom,
+                    backgroundColor: token.imageUrl ? "transparent" : token.color,
+                    backgroundImage: token.imageUrl ? `url(${token.imageUrl})` : undefined,
+                  }}
+                  onPointerDown={(e) => onTokenPointerDown(e, token)}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    if (mine) setEditingTokenId(token.id);
+                  }}
+                  title={token.label}
+                >
+                  {!token.imageUrl && <span className="token-label">{token.label.slice(0, 2).toUpperCase()}</span>}
+                  <span className="token-name">{token.label}</span>
+                </div>
+              );
+            })}
+
+            {editingTokenId && room.tokens[editingTokenId] && (
+              <TokenEditor
+                token={room.tokens[editingTokenId]}
+                room={room}
+                isGM={isGM}
+                onClose={() => setEditingTokenId(null)}
+              />
+            )}
           </div>
-        )}
+        </div>
 
-        {tokens.map((token) => {
-          const dragging = dragTokenId === token.id;
-          const pos = dragging ? dragPos : token;
-          const mine = canControl(token);
-          return (
-            <div
-              key={token.id}
-              className={`token ${mine ? "mine" : ""} ${dragging ? "dragging" : ""}`}
-              style={{
-                left: `${pos.x}%`,
-                top: `${pos.y}%`,
-                width: token.size,
-                height: token.size,
-                backgroundColor: token.imageUrl ? "transparent" : token.color,
-                backgroundImage: token.imageUrl ? `url(${token.imageUrl})` : undefined,
-              }}
-              onPointerDown={(e) => onTokenPointerDown(e, token)}
-              onDoubleClick={(e) => {
-                e.stopPropagation();
-                if (mine) setEditingTokenId(token.id);
-              }}
-              title={token.label}
-            >
-              {!token.imageUrl && <span className="token-label">{token.label.slice(0, 2).toUpperCase()}</span>}
-              <span className="token-name">{token.label}</span>
-            </div>
-          );
-        })}
-
-        {editingTokenId && room.tokens[editingTokenId] && (
-          <TokenEditor
-            token={room.tokens[editingTokenId]}
-            room={room}
-            isGM={isGM}
-            onClose={() => setEditingTokenId(null)}
-          />
-        )}
+        <div className="zoom-controls">
+          <button type="button" onClick={() => zoomByButton(-ZOOM_STEP)} title="Zoom out">
+            −
+          </button>
+          <span className="zoom-level">{Math.round(zoom * 100)}%</span>
+          <button type="button" onClick={() => zoomByButton(ZOOM_STEP)} title="Zoom in">
+            +
+          </button>
+          {zoom !== 1 && (
+            <button type="button" className="small" onClick={() => zoomByButton(1 - zoom)} title="Reset zoom">
+              Reset
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="board-toolbar">
