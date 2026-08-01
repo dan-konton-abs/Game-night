@@ -46,6 +46,15 @@ over-engineered. Ideate and extend from here.
   and edit everyone's sheet; players edit their own. An amount field plus
   Damage/Heal buttons adjust HP by that much in one click instead of typing
   a new total, and always stay clamped between 0 and Max HP.
+- **Initiative tracker.** "Start Combat" auto-adds everyone currently in the
+  game; the GM can also add NPCs/monsters with their own initiative value.
+  Order locks in once combat starts (editing a value mid-fight doesn't
+  reshuffle turn order, matching how it works at a real table). Either the
+  GM or whoever's turn it currently is can advance to the next turn, with
+  round tracked automatically; a badge appears on the Initiative tab for
+  whoever's turn it is if they're looking at a different tab. Ending combat
+  keeps the combatant list around so the same lineup can be reused for the
+  next encounter.
 - **Accounts.** Name, email, and password — a real login rather than a
   browser-local identity, so you can pick up any game from any device.
   Forgotten passwords are reset via an emailed link (server-side SMTP,
@@ -68,9 +77,8 @@ over-engineered. Ideate and extend from here.
   current GM can hand the role to any other player in the game (Players
   tab, "Make GM"), keeping the board/tokens/characters/history intact.
 
-Not in the MVP (good candidates for v2+): fog of war, initiative
-tracker/turn order, measuring/rulers, layers, per-token vision, richer
-character sheet templates per system, authentication beyond a room code.
+Not in the MVP (good candidates for v2+): fog of war, measuring/rulers,
+layers, per-token vision, richer character sheet templates per system.
 
 ## Project layout
 

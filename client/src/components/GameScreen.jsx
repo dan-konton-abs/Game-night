@@ -4,6 +4,7 @@ import ChatPanel from "./ChatPanel.jsx";
 import DicePanel from "./DicePanel.jsx";
 import CharacterSheet from "./CharacterSheet.jsx";
 import PlayersPanel from "./PlayersPanel.jsx";
+import InitiativePanel from "./InitiativePanel.jsx";
 import GMPanel from "./GMPanel.jsx";
 
 export default function GameScreen({ room, whispers, whisperHistoryLoaded, playerId, identity, onLeave }) {
@@ -58,10 +59,16 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
     if (!isGM && tab === "gm") setTab("chat");
   }, [isGM, tab]);
 
+  const initiative = room.initiative;
+  const isMyTurn = !!(
+    initiative?.active && initiative.entries[initiative.currentIndex]?.playerId === playerId
+  );
+
   const tabs = useMemo(() => {
     const base = [
       { id: "chat", label: "💬 Chat" },
       { id: "dice", label: "🎲 Dice" },
+      { id: "initiative", label: "⚔ Initiative" },
       { id: "character", label: "📜 Character" },
       { id: "players", label: "👥 Players" },
     ];
@@ -97,6 +104,7 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
               <button key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
                 {t.label}
                 {t.id === "chat" && totalUnread > 0 && <span className="tab-badge">{totalUnread}</span>}
+                {t.id === "initiative" && isMyTurn && <span className="tab-badge">!</span>}
               </button>
             ))}
           </nav>
@@ -114,6 +122,7 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
               />
             )}
             {tab === "dice" && <DicePanel room={room} />}
+            {tab === "initiative" && <InitiativePanel room={room} playerId={playerId} isGM={isGM} />}
             {tab === "character" && (
               <CharacterSheet
                 room={room}

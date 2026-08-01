@@ -819,6 +819,78 @@ fieldset {
   margin-left: 6px;
 }
 
+/* Initiative */
+.initiative-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.initiative-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--panel-alt);
+}
+
+.initiative-list li.current-turn {
+  outline: 2px solid var(--accent);
+  background: rgba(91, 141, 239, 0.12);
+}
+
+.initiative-value,
+.initiative-value-input {
+  width: 48px;
+  flex-shrink: 0;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* Reclaim width from the native number spinner arrows, which otherwise eat
+   into the box enough to clip a second digit at this size. */
+.initiative-value-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.initiative-value-input::-webkit-outer-spin-button,
+.initiative-value-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.initiative-name {
+  flex: 1;
+}
+
+.initiative-name-input {
+  flex: 1;
+}
+
+.initiative-add-form {
+  margin-bottom: 12px;
+}
+
+.initiative-add-form input:first-child {
+  flex: 1;
+}
+
+.initiative-add-form .initiative-value-input {
+  width: 56px;
+}
+
+.initiative-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 /* Toast */
 .toast {
   position: fixed;

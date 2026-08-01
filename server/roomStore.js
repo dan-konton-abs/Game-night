@@ -57,6 +57,7 @@ function blankRoom(code) {
     chat: [],
     whispers: {},
     scenes: {},
+    initiative: { active: false, round: 1, currentIndex: 0, entries: [] },
   };
 }
 
@@ -93,6 +94,7 @@ function ensureLoaded(code) {
     if (!loaded.scenes) loaded.scenes = {};
     if (!loaded.name) loaded.name = null;
     if (!loaded.updatedAt) loaded.updatedAt = loaded.createdAt || Date.now();
+    if (!loaded.initiative) loaded.initiative = { active: false, round: 1, currentIndex: 0, entries: [] };
     rooms.set(code, loaded);
     return loaded;
   }
