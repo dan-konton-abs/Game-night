@@ -50,6 +50,13 @@ over-engineered. Ideate and extend from here.
   browser-local identity, so you can pick up any game from any device.
   Forgotten passwords are reset via an emailed link (server-side SMTP,
   configured with the env vars below).
+- **Scenes.** The GM can save the current map (background + grid + every
+  token's position/appearance) as a named scene from GM Tools, then switch
+  locations without scrambling the layout - loading a different scene later
+  restores each one's own board and tokens exactly as saved. Scenes can be
+  updated (re-saved over themselves), renamed, or deleted; switching prompts
+  a reminder to save first if you want to keep the current setup, since
+  loading replaces the live board/tokens.
 - **My Games dashboard.** After logging in you land on a list of every game
   you're part of (as GM or player), each with a name the GM can set (and
   rename any time), so you can run more than one game at a time and resume

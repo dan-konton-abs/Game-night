@@ -56,6 +56,7 @@ function blankRoom(code) {
     diceLog: [],
     chat: [],
     whispers: {},
+    scenes: {},
   };
 }
 
@@ -89,6 +90,7 @@ function ensureLoaded(code) {
     for (const p of Object.values(loaded.players)) p.online = false;
     if (!loaded.chat) loaded.chat = [];
     if (!loaded.whispers) loaded.whispers = {};
+    if (!loaded.scenes) loaded.scenes = {};
     if (!loaded.name) loaded.name = null;
     if (!loaded.updatedAt) loaded.updatedAt = loaded.createdAt || Date.now();
     rooms.set(code, loaded);

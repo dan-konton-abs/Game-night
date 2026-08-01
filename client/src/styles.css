@@ -204,6 +204,43 @@ label {
   flex-shrink: 0;
 }
 
+/* Scenes list (GM Tools) */
+.scene-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scene-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--panel-alt);
+  border-radius: 8px;
+  padding: 8px 10px;
+  flex-wrap: wrap;
+}
+
+.scene-name {
+  font-weight: 600;
+}
+
+.scene-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.scene-actions button {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+}
+
 /* Game screen layout */
 .game-screen {
   height: 100%;

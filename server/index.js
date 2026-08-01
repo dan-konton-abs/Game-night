@@ -490,6 +490,68 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
+  // Scenes are independent snapshots of board+tokens the GM can save and
+  // switch between, so moving to a new location doesn't scramble whatever
+  // token layout was set up for the last one.
+  socket.on("scene:save", ({ id, name }, ack) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can save scenes.");
+
+    const existing = id && room.scenes[id];
+    const sceneId = existing ? id : store.newId();
+    const cleanName = clampText(name, 60).trim() || existing?.name || `Scene ${Object.keys(room.scenes).length + 1}`;
+
+    room.scenes[sceneId] = {
+      id: sceneId,
+      name: cleanName,
+      board: JSON.parse(JSON.stringify(room.board)),
+      tokens: JSON.parse(JSON.stringify(room.tokens)),
+      updatedAt: Date.now(),
+    };
+
+    broadcast(room);
+    ack?.({ ok: true, id: sceneId });
+  });
+
+  socket.on("scene:load", ({ id }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can switch scenes.");
+    const scene = room.scenes[id];
+    if (!scene) return publicError(socket, "That scene no longer exists.");
+
+    room.board = JSON.parse(JSON.stringify(scene.board));
+    room.tokens = JSON.parse(JSON.stringify(scene.tokens));
+
+    broadcast(room);
+  });
+
+  socket.on("scene:rename", ({ id, name }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can rename scenes.");
+    const scene = room.scenes[id];
+    if (!scene) return;
+
+    scene.name = clampText(name, 60).trim() || scene.name;
+    broadcast(room);
+  });
+
+  socket.on("scene:delete", ({ id }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can delete scenes.");
+    if (!room.scenes[id]) return;
+
+    delete room.scenes[id];
+    broadcast(room);
+  });
+
   socket.on("dice:roll", ({ formula, label }) => {
     const room = currentRoom();
     if (!room) return;
