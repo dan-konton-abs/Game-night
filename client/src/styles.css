@@ -197,6 +197,13 @@ label {
   font-weight: 600;
 }
 
+.game-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 /* Game screen layout */
 .game-screen {
   height: 100%;
@@ -572,6 +579,10 @@ fieldset {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.player-info {
+  flex: 1;
 }
 
 .player-list li.me {

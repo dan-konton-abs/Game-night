@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { socket, connectSocket } from "../socket.js";
+import { renameGame, deleteGame, leaveGame } from "../games.js";
 
 function timeAgo(ts) {
   const diff = Math.max(0, Date.now() - ts);
@@ -11,7 +12,7 @@ function timeAgo(ts) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export default function MyGamesScreen({ user, games, onLogout }) {
+export default function MyGamesScreen({ user, games, onLogout, onRefreshGames }) {
   const [gameName, setGameName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -55,6 +56,42 @@ export default function MyGamesScreen({ user, games, onLogout }) {
     });
   }
 
+  async function renameGameRow(g) {
+    const next = window.prompt("Rename this game", g.name || "");
+    if (next === null) return;
+    setError(null);
+    try {
+      await renameGame(g.code, next.trim());
+      onRefreshGames();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function deleteGameRow(g) {
+    const label = g.name || `Game ${g.code}`;
+    if (!window.confirm(`Delete "${label}" for everyone? This can't be undone.`)) return;
+    setError(null);
+    try {
+      await deleteGame(g.code);
+      onRefreshGames();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function leaveGameRow(g) {
+    const label = g.name || `Game ${g.code}`;
+    if (!window.confirm(`Leave "${label}"? You can rejoin later with the room code.`)) return;
+    setError(null);
+    try {
+      await leaveGame(g.code);
+      onRefreshGames();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   return (
     <div className="home-screen">
       <div className="home-card games-card">
@@ -82,9 +119,25 @@ export default function MyGamesScreen({ user, games, onLogout }) {
                   {g.playerCount === 1 ? "person" : "people"} · active {timeAgo(g.updatedAt)}
                 </div>
               </div>
-              <button type="button" className="primary small" disabled={busy} onClick={() => resumeGame(g.code)}>
-                Resume
-              </button>
+              <div className="game-list-actions">
+                {g.role === "gm" ? (
+                  <>
+                    <button type="button" className="small" disabled={busy} onClick={() => renameGameRow(g)}>
+                      Rename
+                    </button>
+                    <button type="button" className="small danger" disabled={busy} onClick={() => deleteGameRow(g)}>
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="small danger" disabled={busy} onClick={() => leaveGameRow(g)}>
+                    Leave
+                  </button>
+                )}
+                <button type="button" className="primary small" disabled={busy} onClick={() => resumeGame(g.code)}>
+                  Resume
+                </button>
+              </div>
             </li>
           ))}
         </ul>

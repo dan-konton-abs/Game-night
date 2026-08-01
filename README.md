@@ -39,9 +39,15 @@ over-engineered. Ideate and extend from here.
   Forgotten passwords are reset via an emailed link (server-side SMTP,
   configured with the env vars below).
 - **My Games dashboard.** After logging in you land on a list of every game
-  you're part of (as GM or player), each with a name the GM can set at
-  creation time, so you can run more than one game at a time and resume any
-  of them later without needing to remember room codes.
+  you're part of (as GM or player), each with a name the GM can set (and
+  rename any time), so you can run more than one game at a time and resume
+  any of them later without needing to remember room codes. The GM can
+  delete a game entirely (for everyone, with a confirmation — anyone still
+  actively in it gets bounced back to their own dashboard with a notice);
+  a non-GM player can leave a game to drop it from just their own list
+  without affecting anyone else. GM duties aren't permanent either — the
+  current GM can hand the role to any other player in the game (Players
+  tab, "Make GM"), keeping the board/tokens/characters/history intact.
 
 Not in the MVP (good candidates for v2+): fog of war, initiative
 tracker/turn order, measuring/rulers, layers, per-token vision, richer

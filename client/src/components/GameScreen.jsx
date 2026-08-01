@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Board from "./Board.jsx";
 import ChatPanel from "./ChatPanel.jsx";
 import DicePanel from "./DicePanel.jsx";
@@ -11,6 +11,12 @@ export default function GameScreen({ room, whispers, playerId, identity, onLeave
   const isGM = room.gmPlayerId === playerId;
   const [tab, setTab] = useState("chat");
   const [viewCharacterId, setViewCharacterId] = useState(playerId);
+
+  // If GM duties get transferred away from us mid-session, the GM Tools tab
+  // disappears - don't leave the user stranded on a tab that no longer exists.
+  useEffect(() => {
+    if (!isGM && tab === "gm") setTab("chat");
+  }, [isGM, tab]);
 
   const tabs = useMemo(() => {
     const base = [
@@ -66,7 +72,7 @@ export default function GameScreen({ room, whispers, playerId, identity, onLeave
                 onChangeViewCharacter={setViewCharacterId}
               />
             )}
-            {tab === "players" && <PlayersPanel room={room} playerId={playerId} />}
+            {tab === "players" && <PlayersPanel room={room} playerId={playerId} isGM={isGM} />}
             {tab === "gm" && isGM && <GMPanel room={room} />}
           </div>
         </aside>

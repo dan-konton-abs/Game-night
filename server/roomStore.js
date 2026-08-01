@@ -103,6 +103,19 @@ function touch(code) {
   scheduleSave(code);
 }
 
+/** Permanently removes a room: cancels any pending save, deletes it from memory and disk. */
+function deleteRoom(code) {
+  const timer = saveTimers.get(code);
+  if (timer) clearTimeout(timer);
+  saveTimers.delete(code);
+  rooms.delete(code);
+  try {
+    fs.unlinkSync(dataPath(code));
+  } catch {
+    // Already gone, or never made it to disk - either way, nothing left to do.
+  }
+}
+
 /** Every room code that has ever been persisted, whether or not it's currently in memory. */
 function allRoomCodes() {
   const onDisk = fs
@@ -136,6 +149,7 @@ module.exports = {
   createRoom,
   ensureLoaded,
   touch,
+  deleteRoom,
   whisperKey,
   listRoomsForUser,
   newId: nanoid,
