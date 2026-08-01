@@ -29,7 +29,9 @@ over-engineered. Ideate and extend from here.
   broadcast to the room), not just hidden in the UI — though if whoever
   hosts the server is also a player, they'd still have disk access to the
   stored messages, so it's private from the table, not from the host.
-  History persists with the room.
+  History persists with the room. Unread messages show a badge on the Chat
+  tab (and per-thread in the conversation selector) whenever you're looking
+  elsewhere, plus a `(n)` count in the browser tab title.
 - **Character sheets.** Each person gets one sheet: name, class/role, level,
   HP/max HP, defense, a free-form list of attributes (add/rename/remove
   rows — so it fits a non-D&D system), inventory, and notes. The GM can view

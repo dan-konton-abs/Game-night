@@ -21,6 +21,7 @@ export default function App() {
   const [games, setGames] = useState([]);
   const [room, setRoom] = useState(null);
   const [whispers, setWhispers] = useState({});
+  const [whisperHistoryLoaded, setWhisperHistoryLoaded] = useState(false);
   const [toast, setToast] = useState(null);
 
   const refreshGames = useCallback(() => {
@@ -58,6 +59,7 @@ export default function App() {
     }
     function onWhisperHistory({ threads }) {
       setWhispers(threads || {});
+      setWhisperHistoryLoaded(true);
     }
     function onWhisper(message) {
       const otherId = message.fromId === user?.id ? message.toId : message.fromId;
@@ -104,6 +106,7 @@ export default function App() {
     setGames([]);
     setRoom(null);
     setWhispers({});
+    setWhisperHistoryLoaded(false);
     socket.disconnect();
   }, []);
 
@@ -111,6 +114,7 @@ export default function App() {
     socket.emit("room:leave");
     setRoom(null);
     setWhispers({});
+    setWhisperHistoryLoaded(false);
     refreshGames();
   }, [refreshGames]);
 
@@ -137,6 +141,7 @@ export default function App() {
         <GameScreen
           room={room}
           whispers={whispers}
+          whisperHistoryLoaded={whisperHistoryLoaded}
           playerId={user.id}
           identity={user}
           onLeave={handleBackToGames}
