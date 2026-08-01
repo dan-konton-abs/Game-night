@@ -13,6 +13,11 @@ over-engineered. Ideate and extend from here.
   the 5-character room code. Everyone else joins with that code.
 - **Shared board.** The GM sets a background map (paste an image URL, or
   upload an image file). An optional grid overlay can be toggled/resized.
+  Anyone can independently zoom in/out on their own view (buttons, or
+  Ctrl/Cmd+scroll wheel, or trackpad pinch) and pan around by scrolling —
+  purely a personal viewing preference, so one player zooming in doesn't
+  change what anyone else sees. The grid and tokens scale together with
+  zoom, so alignment with the GM's configured grid size is never thrown off.
 - **Tokens.** Anyone can add a token (their own); the GM can add tokens for
   anyone or unowned NPCs/monsters. Tokens are dragged directly on the board
   and everyone sees moves instantly. Double-click your own token (or any
