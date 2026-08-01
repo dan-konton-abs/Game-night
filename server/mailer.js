@@ -9,6 +9,9 @@ if (SMTP_HOST) {
     port: Number(SMTP_PORT) || 587,
     secure: SMTP_SECURE === "true",
     auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+    tls: {
+      rejectUnauthorized: false,
+    },
   });
 } else {
   console.warn(
