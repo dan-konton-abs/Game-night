@@ -3,7 +3,8 @@ const path = require("path");
 const { nanoid, customAlphabet } = require("nanoid");
 
 const DATA_DIR = path.join(__dirname, "data");
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+const ROOMS_DIR = path.join(DATA_DIR, "rooms");
+if (!fs.existsSync(ROOMS_DIR)) fs.mkdirSync(ROOMS_DIR, { recursive: true });
 
 const roomCodeId = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 5);
 
@@ -12,7 +13,7 @@ const rooms = new Map();
 const saveTimers = new Map();
 
 function dataPath(code) {
-  return path.join(DATA_DIR, `${code}.json`);
+  return path.join(ROOMS_DIR, `${code}.json`);
 }
 
 function scheduleSave(code) {
@@ -40,7 +41,9 @@ function loadRoomFromDisk(code) {
 function blankRoom(code) {
   return {
     code,
+    name: null,
     createdAt: Date.now(),
+    updatedAt: Date.now(),
     gmPlayerId: null,
     board: {
       backgroundUrl: null,
@@ -86,6 +89,8 @@ function ensureLoaded(code) {
     for (const p of Object.values(loaded.players)) p.online = false;
     if (!loaded.chat) loaded.chat = [];
     if (!loaded.whispers) loaded.whispers = {};
+    if (!loaded.name) loaded.name = null;
+    if (!loaded.updatedAt) loaded.updatedAt = loaded.createdAt || Date.now();
     rooms.set(code, loaded);
     return loaded;
   }
@@ -93,7 +98,36 @@ function ensureLoaded(code) {
 }
 
 function touch(code) {
+  const room = rooms.get(code);
+  if (room) room.updatedAt = Date.now();
   scheduleSave(code);
+}
+
+/** Every room code that has ever been persisted, whether or not it's currently in memory. */
+function allRoomCodes() {
+  const onDisk = fs
+    .readdirSync(ROOMS_DIR)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => f.replace(/\.json$/, ""));
+  return Array.from(new Set([...onDisk, ...rooms.keys()]));
+}
+
+/** Summaries of every game a given user belongs to (as GM or player), newest activity first. */
+function listRoomsForUser(userId) {
+  const summaries = [];
+  for (const code of allRoomCodes()) {
+    const room = ensureLoaded(code);
+    if (!room || !room.players[userId]) continue;
+    summaries.push({
+      code: room.code,
+      name: room.name,
+      role: room.gmPlayerId === userId ? "gm" : "player",
+      playerCount: Object.keys(room.players).length,
+      updatedAt: room.updatedAt,
+    });
+  }
+  summaries.sort((a, b) => b.updatedAt - a.updatedAt);
+  return summaries;
 }
 
 module.exports = {
@@ -103,5 +137,6 @@ module.exports = {
   ensureLoaded,
   touch,
   whisperKey,
+  listRoomsForUser,
   newId: nanoid,
 };
