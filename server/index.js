@@ -490,6 +490,119 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
+  function ensureInitiative(room) {
+    if (!room.initiative) room.initiative = { active: false, round: 1, currentIndex: 0, entries: [] };
+    return room.initiative;
+  }
+
+  socket.on("initiative:start", () => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can start initiative.");
+
+    const initiative = ensureInitiative(room);
+    // Add any current players missing an entry (e.g. someone joined after NPCs
+    // were already added, or this is the very first start) without disturbing
+    // entries the GM already set up.
+    const existingPlayerIds = new Set(initiative.entries.filter((e) => e.playerId).map((e) => e.playerId));
+    for (const p of Object.values(room.players)) {
+      if (existingPlayerIds.has(p.id)) continue;
+      initiative.entries.push({
+        id: store.newId(),
+        name: room.characters[p.characterId]?.name || p.name,
+        value: 10,
+        playerId: p.id,
+      });
+    }
+    initiative.entries.sort((a, b) => b.value - a.value);
+    initiative.active = true;
+    initiative.round = 1;
+    initiative.currentIndex = 0;
+
+    broadcast(room);
+  });
+
+  socket.on("initiative:addEntry", ({ name, value }) => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can add to initiative.");
+
+    const initiative = ensureInitiative(room);
+    initiative.entries.push({
+      id: store.newId(),
+      name: clampText(name, 40).trim() || "Unnamed",
+      value: Math.min(99, Math.max(-99, Math.round(Number(value)) || 0)),
+      playerId: null,
+    });
+    if (!initiative.active) initiative.entries.sort((a, b) => b.value - a.value);
+
+    broadcast(room);
+  });
+
+  socket.on("initiative:updateEntry", ({ entryId, patch }) => {
+    const room = currentRoom();
+    if (!room?.initiative) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can edit initiative.");
+
+    const entry = room.initiative.entries.find((e) => e.id === entryId);
+    if (!entry) return;
+    if ("name" in patch) entry.name = clampText(patch.name, 40);
+    if ("value" in patch) entry.value = Math.min(99, Math.max(-99, Math.round(Number(patch.value)) || 0));
+    // Order is locked in once combat is active, matching how initiative
+    // works at a real table - only auto-resort during setup.
+    if (!room.initiative.active) room.initiative.entries.sort((a, b) => b.value - a.value);
+
+    broadcast(room);
+  });
+
+  socket.on("initiative:removeEntry", ({ entryId }) => {
+    const room = currentRoom();
+    if (!room?.initiative) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can remove from initiative.");
+
+    const idx = room.initiative.entries.findIndex((e) => e.id === entryId);
+    if (idx === -1) return;
+    room.initiative.entries.splice(idx, 1);
+    if (room.initiative.currentIndex >= room.initiative.entries.length) room.initiative.currentIndex = 0;
+
+    broadcast(room);
+  });
+
+  socket.on("initiative:next", () => {
+    const room = currentRoom();
+    if (!room?.initiative?.active || room.initiative.entries.length === 0) return;
+    const playerId = socket.data.playerId;
+    const current = room.initiative.entries[room.initiative.currentIndex];
+    const isCurrentTurnPlayer = current && current.playerId === playerId;
+    if (!isGM(room, playerId) && !isCurrentTurnPlayer) {
+      return publicError(socket, "Only the GM or whoever's turn it is can advance initiative.");
+    }
+
+    room.initiative.currentIndex += 1;
+    if (room.initiative.currentIndex >= room.initiative.entries.length) {
+      room.initiative.currentIndex = 0;
+      room.initiative.round += 1;
+    }
+
+    broadcast(room);
+  });
+
+  socket.on("initiative:end", () => {
+    const room = currentRoom();
+    if (!room?.initiative) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can end initiative.");
+    room.initiative.active = false;
+    broadcast(room);
+  });
+
+  socket.on("initiative:clear", () => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can clear initiative.");
+    room.initiative = { active: false, round: 1, currentIndex: 0, entries: [] };
+    broadcast(room);
+  });
+
   socket.on("dice:roll", ({ formula, label }) => {
     const room = currentRoom();
     if (!room) return;
