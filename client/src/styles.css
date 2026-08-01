@@ -932,6 +932,15 @@ fieldset {
   flex-wrap: wrap;
 }
 
+.connection-banner {
+  background: var(--warning);
+  color: #1a1200;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px;
+}
+
 /* Toast */
 .toast {
   position: fixed;

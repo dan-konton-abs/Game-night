@@ -17,6 +17,7 @@ export default function TokenEditor({ token, room, isGM, onClose }) {
   }
 
   function remove() {
+    if (!confirm(`Delete "${token.label}"? This can't be undone.`)) return;
     socket.emit("token:remove", { tokenId: token.id });
     onClose();
   }
