@@ -475,6 +475,31 @@ label {
   margin-bottom: 12px;
 }
 
+.quick-dice button.active {
+  background: var(--accent);
+  color: #0a0d14;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.dice-count-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.dice-count-row button.small {
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.dice-count {
+  min-width: 18px;
+  text-align: center;
+  font-weight: 600;
+}
+
 .dice-formula-form {
   display: flex;
   gap: 8px;
@@ -483,6 +508,85 @@ label {
 
 .dice-label-input {
   margin-bottom: 4px;
+}
+
+.dice-tray {
+  margin: 16px 0;
+  padding: 12px;
+  background: var(--panel-alt);
+  border-radius: 8px;
+}
+
+.dice-tray-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.dice-tray-dice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.die-face {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f4f4;
+  color: #16181f;
+  border-radius: 8px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.die-face.die-pips {
+  font-size: 1.9rem;
+}
+
+.die-face.die-face-small {
+  font-size: 1rem;
+}
+
+.die-face.spinning {
+  animation: die-spin 0.35s linear infinite;
+}
+
+.die-face.settled {
+  animation: die-settle 0.3s ease-out;
+}
+
+@keyframes die-spin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.15);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes die-settle {
+  0% {
+    transform: scale(1.35) rotate(0deg);
+  }
+  60% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.dice-tray-total {
+  margin-top: 10px;
+  font-size: 0.95rem;
 }
 
 .dice-log {

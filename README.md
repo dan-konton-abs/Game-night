@@ -23,8 +23,11 @@ over-engineered. Ideate and extend from here.
   and everyone sees moves instantly. Double-click your own token (or any
   token, if you're the GM) to rename it, recolor it, set an image, resize it,
   or reassign its owner.
-- **Dice.** Quick buttons for d4/d6/d8/d10/d12/d20/d100, or type a formula
-  like `2d6+3`. Every roll is posted to a shared log everyone can see.
+- **Dice.** Quick buttons for d4/d6/d8/d10/d12/d20/d100 (pick one, then a
+  count stepper appears to roll several at once, e.g. 4d6), or type a
+  formula like `2d6+3` for modifiers. Every roll plays an animated tumble
+  for everyone currently on the Dice tab — d6 shows real pip faces — landing
+  on the real server-computed result, then joins the shared log.
 - **Chat.** A shared text log alongside the board, for anything easier to
   type than say over voice (links, OOC notes, etc). A selector at the top
   switches between the shared "Everyone" channel and a private 1:1 whisper
