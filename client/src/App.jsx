@@ -71,11 +71,13 @@ export default function App() {
       const otherId = message.fromId === user?.id ? message.toId : message.fromId;
       setWhispers((prev) => ({ ...prev, [otherId]: [...(prev[otherId] || []), message] }));
     }
-    function onConnectError() {
-      // Token was rejected by the server (deleted account, corrupted token, etc).
-      clearToken();
-      setUser(null);
-      setRoom(null);
+    function onConnectError(err) {
+      if (err?.message === "unauthorized") {
+        // Token was rejected by the server (deleted account, corrupted token, etc).
+        clearToken();
+        setUser(null);
+        setRoom(null);
+      }
     }
     function onRoomDeleted({ reason }) {
       setToast(reason || "This game is no longer available.");
