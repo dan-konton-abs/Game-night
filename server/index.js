@@ -11,7 +11,7 @@ const store = require("./roomStore");
 const userStore = require("./userStore");
 const { signToken, verifyToken } = require("./auth");
 const { sendPasswordResetEmail } = require("./mailer");
-const { rollFormula } = require("./dice");
+const { rollFormula, rollAlienPool } = require("./dice");
 
 const PORT = process.env.PORT || 4000;
 const PUBLIC_URL = process.env.PUBLIC_URL || `http://localhost:${PORT}`;
@@ -664,12 +664,34 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
-  socket.on("dice:roll", ({ formula, label }) => {
+  socket.on("dice:roll", ({ formula, label, mode, baseDice, stressDice }) => {
     const room = currentRoom();
     if (!room) return;
     const playerId = socket.data.playerId;
     const player = room.players[playerId];
     if (!player) return;
+
+    if (mode === "alien") {
+      const result = rollAlienPool(baseDice, stressDice);
+      if (!result.ok) return publicError(socket, result.error);
+
+      room.diceLog.unshift({
+        id: store.newId(),
+        playerId,
+        name: player.name,
+        label: clampText(label, 40),
+        mode: "alien",
+        baseRolls: result.baseRolls,
+        stressRolls: result.stressRolls,
+        successes: result.successes,
+        panic: result.panic,
+        timestamp: Date.now(),
+      });
+      room.diceLog = room.diceLog.slice(0, 50);
+
+      broadcast(room);
+      return;
+    }
 
     const result = rollFormula(clampText(formula, 30));
     if (!result.ok) return publicError(socket, result.error);
