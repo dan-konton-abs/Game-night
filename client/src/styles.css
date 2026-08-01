@@ -696,6 +696,22 @@ label {
   grid-template-columns: 1fr 1fr 1fr;
 }
 
+.hp-adjust-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.hp-adjust-amount {
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.hp-adjust-row button {
+  flex: 1;
+}
+
 .attributes-grid {
   display: flex;
   flex-direction: column;

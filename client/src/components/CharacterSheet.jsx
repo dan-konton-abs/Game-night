@@ -21,6 +21,7 @@ export default function CharacterSheet({ room, playerId, isGM, viewCharacterId, 
   const character = room.characters[targetId];
   const [draft, setDraft] = useState(character || emptyDraft());
   const [saved, setSaved] = useState(true);
+  const [adjustAmount, setAdjustAmount] = useState(1);
 
   useEffect(() => {
     setDraft(room.characters[targetId] || emptyDraft());
@@ -52,6 +53,15 @@ export default function CharacterSheet({ room, playerId, isGM, viewCharacterId, 
 
   function removeAttribute(id) {
     const next = { ...draft, attributes: draft.attributes.filter((a) => a.id !== id) };
+    setDraft(next);
+    save(next);
+  }
+
+  function adjustHp(delta) {
+    const maxHp = Number(draft.maxHp) || 0;
+    const current = Number(draft.hp) || 0;
+    const nextHp = Math.min(Math.max(current + delta, 0), maxHp);
+    const next = { ...draft, hp: nextHp };
     setDraft(next);
     save(next);
   }
@@ -106,6 +116,24 @@ export default function CharacterSheet({ room, playerId, isGM, viewCharacterId, 
             <input type="number" value={draft.maxHp} onChange={(e) => update({ maxHp: e.target.value })} onBlur={() => save()} />
           </label>
         </div>
+
+        {canEdit && (
+          <div className="hp-adjust-row">
+            <input
+              type="number"
+              className="hp-adjust-amount"
+              value={adjustAmount}
+              onChange={(e) => setAdjustAmount(Math.max(1, Number(e.target.value) || 1))}
+              min={1}
+            />
+            <button type="button" className="danger" onClick={() => adjustHp(-adjustAmount)}>
+              Damage
+            </button>
+            <button type="button" className="primary" onClick={() => adjustHp(adjustAmount)}>
+              Heal
+            </button>
+          </div>
+        )}
 
         <label>
           Defense / Armor

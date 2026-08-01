@@ -43,7 +43,9 @@ over-engineered. Ideate and extend from here.
 - **Character sheets.** Each person gets one sheet: name, class/role, level,
   HP/max HP, defense, a free-form list of attributes (add/rename/remove
   rows — so it fits a non-D&D system), inventory, and notes. The GM can view
-  and edit everyone's sheet; players edit their own.
+  and edit everyone's sheet; players edit their own. An amount field plus
+  Damage/Heal buttons adjust HP by that much in one click instead of typing
+  a new total, and always stay clamped between 0 and Max HP.
 - **Accounts.** Name, email, and password — a real login rather than a
   browser-local identity, so you can pick up any game from any device.
   Forgotten passwords are reset via an emailed link (server-side SMTP,
