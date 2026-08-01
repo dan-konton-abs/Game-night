@@ -10,9 +10,8 @@ function timeAgo(ts) {
   return `${hrs}h ago`;
 }
 
-export default function ChatPanel({ room, whispers, playerId }) {
+export default function ChatPanel({ room, whispers, playerId, activeThread, onChangeThread, unreadEveryone, unreadWhispers }) {
   const [text, setText] = useState("");
-  const [activeThread, setActiveThread] = useState("everyone");
   const listRef = useRef(null);
 
   const others = useMemo(
@@ -26,8 +25,8 @@ export default function ChatPanel({ room, whispers, playerId }) {
 
   // If whoever we were whispering with is no longer in the room, fall back to Everyone.
   useEffect(() => {
-    if (isPrivate && !otherPlayer) setActiveThread("everyone");
-  }, [isPrivate, otherPlayer]);
+    if (isPrivate && !otherPlayer) onChangeThread("everyone");
+  }, [isPrivate, otherPlayer, onChangeThread]);
 
   useEffect(() => {
     const el = listRef.current;
@@ -46,12 +45,15 @@ export default function ChatPanel({ room, whispers, playerId }) {
     <div className="panel chat-panel">
       <label className="chat-thread-select">
         Conversation
-        <select value={activeThread} onChange={(e) => setActiveThread(e.target.value)}>
-          <option value="everyone">💬 Everyone</option>
+        <select value={activeThread} onChange={(e) => onChangeThread(e.target.value)}>
+          <option value="everyone">
+            💬 Everyone{unreadEveryone > 0 ? ` • ${unreadEveryone} new` : ""}
+          </option>
           {others.map((p) => (
             <option key={p.id} value={p.id}>
               🔒 Whisper: {p.name}
               {p.id === room.gmPlayerId ? " (GM)" : ""}
+              {unreadWhispers[p.id] > 0 ? ` • ${unreadWhispers[p.id]} new` : ""}
             </option>
           ))}
         </select>
