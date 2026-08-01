@@ -58,6 +58,11 @@ over-engineered. Ideate and extend from here.
   without affecting anyone else. GM duties aren't permanent either — the
   current GM can hand the role to any other player in the game (Players
   tab, "Make GM"), keeping the board/tokens/characters/history intact.
+- **Reconnect resilience.** A WiFi blip, laptop sleep, or brief server hiccup
+  drops the live connection; when it comes back, the app automatically
+  rejoins the room you were in server-side (not just a client-side
+  illusion) rather than leaving you looking at a board that's quietly
+  stopped syncing. A banner shows while reconnecting so it's never silent.
 
 Not in the MVP (good candidates for v2+): fog of war, initiative
 tracker/turn order, measuring/rulers, layers, per-token vision, richer

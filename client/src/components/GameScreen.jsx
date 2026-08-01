@@ -6,7 +6,7 @@ import CharacterSheet from "./CharacterSheet.jsx";
 import PlayersPanel from "./PlayersPanel.jsx";
 import GMPanel from "./GMPanel.jsx";
 
-export default function GameScreen({ room, whispers, whisperHistoryLoaded, playerId, identity, onLeave }) {
+export default function GameScreen({ room, whispers, whisperHistoryLoaded, playerId, identity, onLeave, connected }) {
   const me = room.players[playerId];
   const isGM = room.gmPlayerId === playerId;
   const [tab, setTab] = useState("chat");
@@ -75,6 +75,9 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
 
   return (
     <div className="game-screen">
+      {!connected && (
+        <div className="connection-banner">⚠ Reconnecting… moves and messages won't reach anyone until this clears.</div>
+      )}
       <header className="top-bar">
         <div className="room-code" onClick={copyCode} title="Click to copy the room code">
           {room.name ? `${room.name} · ` : "Room: "}
