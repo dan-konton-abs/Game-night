@@ -4,18 +4,24 @@ const http = require("http");
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
+const rateLimit = require("express-rate-limit");
 const { Server } = require("socket.io");
 
 const store = require("./roomStore");
+const userStore = require("./userStore");
+const { signToken, verifyToken } = require("./auth");
+const { sendPasswordResetEmail } = require("./mailer");
 const { rollFormula } = require("./dice");
 
 const PORT = process.env.PORT || 4000;
+const PUBLIC_URL = process.env.PUBLIC_URL || `http://localhost:${PORT}`;
 const CLIENT_DIST = path.join(__dirname, "..", "client", "dist");
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 app.use("/uploads", express.static(UPLOAD_DIR));
 
 const upload = multer({
@@ -36,6 +42,88 @@ const upload = multer({
 app.post("/api/upload", upload.single("image"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
   res.json({ url: `/uploads/${req.file.filename}` });
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts - please wait a while and try again." },
+});
+
+function requireAuth(req, res, next) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const payload = token && verifyToken(token);
+  if (!payload) return res.status(401).json({ error: "Not signed in." });
+  req.user = payload;
+  next();
+}
+
+app.post("/api/auth/signup", authLimiter, async (req, res) => {
+  try {
+    const name = clampText(req.body.name, 40).trim();
+    const email = clampText(req.body.email, 200).trim();
+    const password = String(req.body.password || "");
+
+    if (!name) return res.status(400).json({ error: "Name is required." });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "Enter a valid email address." });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters." });
+    }
+
+    const user = await userStore.createUser({ name, email, password });
+    res.json({ token: signToken(user), user: userStore.publicUser(user) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/auth/login", authLimiter, async (req, res) => {
+  const email = clampText(req.body.email, 200).trim();
+  const password = String(req.body.password || "");
+
+  const user = userStore.findByEmail(email);
+  if (!user || !(await userStore.verifyPassword(user, password))) {
+    return res.status(401).json({ error: "Incorrect email or password." });
+  }
+  res.json({ token: signToken(user), user: userStore.publicUser(user) });
+});
+
+app.get("/api/auth/me", requireAuth, (req, res) => {
+  const user = userStore.findById(req.user.id);
+  if (!user) return res.status(401).json({ error: "Account no longer exists." });
+  res.json({ user: userStore.publicUser(user), games: store.listRoomsForUser(user.id) });
+});
+
+app.post("/api/auth/forgot-password", authLimiter, async (req, res) => {
+  const email = clampText(req.body.email, 200).trim();
+  const user = userStore.findByEmail(email);
+  if (user) {
+    const rawToken = userStore.createResetToken(user);
+    const resetUrl = `${PUBLIC_URL}/reset-password?uid=${user.id}&token=${rawToken}`;
+    sendPasswordResetEmail(user.email, resetUrl).catch((err) =>
+      console.error("Failed to send reset email:", err.message)
+    );
+  }
+  // Same response whether or not the email exists - avoids leaking who has an account.
+  res.json({ ok: true });
+});
+
+app.post("/api/auth/reset-password", authLimiter, async (req, res) => {
+  const newPassword = String(req.body.newPassword || "");
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: "Password must be at least 8 characters." });
+  }
+
+  const user = userStore.consumeResetToken(String(req.body.uid || ""), String(req.body.token || ""));
+  if (!user) return res.status(400).json({ error: "That reset link is invalid or has expired." });
+
+  await userStore.setPassword(user, newPassword);
+  res.json({ ok: true });
 });
 
 if (fs.existsSync(CLIENT_DIST)) {
@@ -110,12 +198,48 @@ function publicError(socket, message) {
   socket.emit("room:error", { message });
 }
 
+// Every socket must present a valid JWT from a real account - playerId is
+// derived from the verified token, never trusted from client-sent payloads.
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  const payload = token && verifyToken(token);
+  const user = payload && userStore.findById(payload.id);
+  if (!user) return next(new Error("unauthorized"));
+  socket.data.playerId = user.id;
+  socket.data.playerName = user.name;
+  next();
+});
+
+/** Leaves whatever room this socket was previously in, marking the player offline there. */
+function leaveCurrentRoom(socket) {
+  const prevCode = socket.data.roomCode;
+  if (!prevCode) return;
+  // Leave the Socket.IO room FIRST - otherwise this socket is still subscribed
+  // when we broadcast below and receives its own "you're offline now" update,
+  // which would immediately overwrite the client's transition back out.
+  socket.leave(prevCode);
+  socket.data.roomCode = null;
+  const prevRoom = store.getRoom(prevCode);
+  if (prevRoom) {
+    const player = prevRoom.players[socket.data.playerId];
+    if (player) player.online = false;
+    broadcast(prevRoom);
+  }
+}
+
 io.on("connection", (socket) => {
-  socket.on("room:create", ({ name, playerId }, ack) => {
+  socket.on("room:leave", () => {
+    leaveCurrentRoom(socket);
+  });
+
+  socket.on("room:create", (payload, ack) => {
     try {
-      const cleanName = clampText(name, 40).trim() || "Game Master";
+      leaveCurrentRoom(socket);
+      const playerId = socket.data.playerId;
+      const cleanName = socket.data.playerName;
       const room = store.createRoom();
       room.gmPlayerId = playerId;
+      room.name = clampText(payload?.gameName, 60).trim() || null;
       room.players[playerId] = {
         id: playerId,
         name: cleanName,
@@ -127,7 +251,6 @@ io.on("connection", (socket) => {
 
       socket.join(room.code);
       socket.data.roomCode = room.code;
-      socket.data.playerId = playerId;
       playerSockets.set(playerId, socket.id);
 
       broadcast(room);
@@ -138,7 +261,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("room:join", ({ roomCode, name, playerId }, ack) => {
+  socket.on("room:join", ({ roomCode }, ack) => {
     try {
       const code = clampText(roomCode, 10).trim().toUpperCase();
       const room = store.ensureLoaded(code);
@@ -146,7 +269,9 @@ io.on("connection", (socket) => {
         ack?.({ ok: false, error: `No game found with code "${code}".` });
         return;
       }
-      const cleanName = clampText(name, 40).trim() || "Player";
+      leaveCurrentRoom(socket);
+      const playerId = socket.data.playerId;
+      const cleanName = socket.data.playerName;
       const role = playerId === room.gmPlayerId ? "gm" : "player";
 
       let player = room.players[playerId];
@@ -171,7 +296,6 @@ io.on("connection", (socket) => {
 
       socket.join(room.code);
       socket.data.roomCode = room.code;
-      socket.data.playerId = playerId;
       playerSockets.set(playerId, socket.id);
 
       broadcast(room);

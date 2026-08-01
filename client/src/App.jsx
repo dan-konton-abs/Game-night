@@ -1,40 +1,54 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { socket, getOrCreatePlayerId, saveIdentity, loadIdentity, clearIdentity } from "./socket.js";
-import HomeScreen from "./components/HomeScreen.jsx";
+import { socket, connectSocket } from "./socket.js";
+import { getToken, setToken, clearToken, fetchMe } from "./auth.js";
+import AuthScreen from "./components/AuthScreen.jsx";
+import ResetPasswordScreen from "./components/ResetPasswordScreen.jsx";
+import MyGamesScreen from "./components/MyGamesScreen.jsx";
 import GameScreen from "./components/GameScreen.jsx";
 
+function getResetParams() {
+  if (window.location.pathname !== "/reset-password") return null;
+  const params = new URLSearchParams(window.location.search);
+  const uid = params.get("uid");
+  const token = params.get("token");
+  return uid && token ? { uid, token } : null;
+}
+
 export default function App() {
-  const [playerId] = useState(getOrCreatePlayerId);
-  const [identity, setIdentity] = useState(loadIdentity);
+  const [bootstrapping, setBootstrapping] = useState(true);
+  const [resetParams] = useState(getResetParams);
+  const [user, setUser] = useState(null);
+  const [games, setGames] = useState([]);
   const [room, setRoom] = useState(null);
   const [whispers, setWhispers] = useState({});
-  const [connected, setConnected] = useState(false);
-  const [joinError, setJoinError] = useState(null);
   const [toast, setToast] = useState(null);
 
-  useEffect(() => {
-    socket.connect();
+  const refreshGames = useCallback(() => {
+    fetchMe()
+      .then(({ games: nextGames }) => setGames(nextGames))
+      .catch(() => {});
+  }, []);
 
-    function onConnect() {
-      setConnected(true);
-      const stored = loadIdentity();
-      if (stored?.roomCode) {
-        socket.emit(
-          "room:join",
-          { roomCode: stored.roomCode, name: stored.name, playerId },
-          (ack) => {
-            if (!ack.ok) {
-              clearIdentity();
-              setIdentity(null);
-              setJoinError(ack.error);
-            }
-          }
-        );
-      }
+  useEffect(() => {
+    if (resetParams) {
+      setBootstrapping(false);
+      return;
     }
-    function onDisconnect() {
-      setConnected(false);
+    const token = getToken();
+    if (!token) {
+      setBootstrapping(false);
+      return;
     }
+    fetchMe()
+      .then(({ user: me, games: myGames }) => {
+        setUser(me);
+        setGames(myGames);
+      })
+      .catch(() => clearToken())
+      .finally(() => setBootstrapping(false));
+  }, [resetParams]);
+
+  useEffect(() => {
     function onRoomState(nextRoom) {
       setRoom(nextRoom);
     }
@@ -46,86 +60,86 @@ export default function App() {
       setWhispers(threads || {});
     }
     function onWhisper(message) {
-      const otherId = message.fromId === playerId ? message.toId : message.fromId;
-      setWhispers((prev) => ({
-        ...prev,
-        [otherId]: [...(prev[otherId] || []), message],
-      }));
+      const otherId = message.fromId === user?.id ? message.toId : message.fromId;
+      setWhispers((prev) => ({ ...prev, [otherId]: [...(prev[otherId] || []), message] }));
+    }
+    function onConnectError() {
+      // Token was rejected by the server (deleted account, corrupted token, etc).
+      clearToken();
+      setUser(null);
+      setRoom(null);
     }
 
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
     socket.on("room:state", onRoomState);
     socket.on("room:error", onRoomError);
     socket.on("chat:whisperHistory", onWhisperHistory);
     socket.on("chat:whisper", onWhisper);
+    socket.on("connect_error", onConnectError);
 
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
       socket.off("room:state", onRoomState);
       socket.off("room:error", onRoomError);
       socket.off("chat:whisperHistory", onWhisperHistory);
       socket.off("chat:whisper", onWhisper);
+      socket.off("connect_error", onConnectError);
     };
-  }, [playerId]);
+  }, [user?.id]);
 
-  const handleCreate = useCallback(
-    (name) =>
-      new Promise((resolve) => {
-        socket.emit("room:create", { name, playerId }, (ack) => {
-          if (ack.ok) {
-            const nextIdentity = { roomCode: ack.code, name, role: ack.role };
-            saveIdentity(nextIdentity);
-            setIdentity(nextIdentity);
-          }
-          resolve(ack);
-        });
-      }),
-    [playerId]
-  );
+  useEffect(() => {
+    if (user) connectSocket();
+    else if (socket.connected) socket.disconnect();
+  }, [user]);
 
-  const handleJoin = useCallback(
-    (roomCode, name) =>
-      new Promise((resolve) => {
-        socket.emit("room:join", { roomCode, name, playerId }, (ack) => {
-          if (ack.ok) {
-            const nextIdentity = { roomCode: ack.code, name, role: ack.role };
-            saveIdentity(nextIdentity);
-            setIdentity(nextIdentity);
-          }
-          resolve(ack);
-        });
-      }),
-    [playerId]
-  );
+  const handleAuthenticated = useCallback((token, authedUser) => {
+    setToken(token);
+    setUser(authedUser);
+    fetchMe()
+      .then(({ games: myGames }) => setGames(myGames))
+      .catch(() => setGames([]));
+  }, []);
 
-  const handleLeave = useCallback(() => {
-    clearIdentity();
-    setIdentity(null);
+  const handleLogout = useCallback(() => {
+    clearToken();
+    setUser(null);
+    setGames([]);
     setRoom(null);
     setWhispers({});
     socket.disconnect();
-    socket.connect();
   }, []);
+
+  const handleBackToGames = useCallback(() => {
+    socket.emit("room:leave");
+    setRoom(null);
+    setWhispers({});
+    refreshGames();
+  }, [refreshGames]);
+
+  if (resetParams) {
+    return (
+      <div className="app-root">
+        <ResetPasswordScreen uid={resetParams.uid} token={resetParams.token} />
+      </div>
+    );
+  }
+
+  if (bootstrapping) {
+    return <div className="app-root" />;
+  }
 
   return (
     <div className="app-root">
       {toast && <div className="toast">{toast}</div>}
-      {!identity || !room ? (
-        <HomeScreen
-          connected={connected}
-          onCreate={handleCreate}
-          onJoin={handleJoin}
-          error={joinError}
-        />
+      {!user ? (
+        <AuthScreen onAuthenticated={handleAuthenticated} />
+      ) : !room ? (
+        <MyGamesScreen user={user} games={games} onLogout={handleLogout} />
       ) : (
         <GameScreen
           room={room}
           whispers={whispers}
-          playerId={playerId}
-          identity={identity}
-          onLeave={handleLeave}
+          playerId={user.id}
+          identity={user}
+          onLeave={handleBackToGames}
         />
       )}
     </div>

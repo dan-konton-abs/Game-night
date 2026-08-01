@@ -30,14 +30,15 @@ export default function GameScreen({ room, whispers, playerId, identity, onLeave
   return (
     <div className="game-screen">
       <header className="top-bar">
-        <div className="room-code" onClick={copyCode} title="Click to copy">
-          Room: <strong>{room.code}</strong>
+        <div className="room-code" onClick={copyCode} title="Click to copy the room code">
+          {room.name ? `${room.name} · ` : "Room: "}
+          <strong>{room.code}</strong>
         </div>
         <div className="me">
           {me?.name || identity.name} {isGM ? "(Game Master)" : ""}
         </div>
         <button className="link-button" onClick={onLeave}>
-          Leave
+          My Games
         </button>
       </header>
 

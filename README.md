@@ -34,8 +34,14 @@ over-engineered. Ideate and extend from here.
   HP/max HP, defense, a free-form list of attributes (add/rename/remove
   rows — so it fits a non-D&D system), inventory, and notes. The GM can view
   and edit everyone's sheet; players edit their own.
-- **Reconnect-friendly.** Your name/room/character persist in the browser, so
-  a refresh or dropped connection rejoins you to the same seat.
+- **Accounts.** Name, email, and password — a real login rather than a
+  browser-local identity, so you can pick up any game from any device.
+  Forgotten passwords are reset via an emailed link (server-side SMTP,
+  configured with the env vars below).
+- **My Games dashboard.** After logging in you land on a list of every game
+  you're part of (as GM or player), each with a name the GM can set at
+  creation time, so you can run more than one game at a time and resume any
+  of them later without needing to remember room codes.
 
 Not in the MVP (good candidates for v2+): fog of war, initiative
 tracker/turn order, measuring/rulers, layers, per-token vision, richer
@@ -88,10 +94,23 @@ Any small Node host works (Render, Railway, Fly.io, a cheap VPS, etc.):
 - Start command: `npm start`
 - Expose port via the `PORT` env var (defaults to 4000)
 - Give the service a **persistent volume** mounted at `server/data` (room
-  state) and `server/uploads` (uploaded map/token images) if you want those
-  to survive a redeploy — without one, rooms and uploaded images reset each
+  state and accounts) and `server/uploads` (uploaded map/token images) if you
+  want those to survive a redeploy — without one, everything resets each
   time the service restarts, which is fine for a single session but
   annoying across weeks.
+
+Environment variables worth setting for a real deployment (all optional for
+local dev, where sensible defaults/fallbacks kick in with a console warning):
+- `JWT_SECRET` — signs login tokens. Without one, a random secret is
+  generated at startup, which invalidates everyone's login on every restart.
+  Generate a real one with `openssl rand -hex 32`.
+- `PUBLIC_URL` — the site's real public URL (e.g. `https://game.yourdomain.com`),
+  used to build the link in password-reset emails. Defaults to
+  `http://localhost:<PORT>`, which is wrong for anything but local dev.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`,
+  `MAIL_FROM` — your mail server, for sending password-reset emails. Without
+  `SMTP_HOST` set, reset links are just logged to the server console instead
+  of emailed — fine for local dev, not for real use.
 
 Then share the public URL with the group instead of `localhost:5173`, same
 Discord call as always, new tab pointed at the board.
@@ -102,12 +121,17 @@ publicly via Cloudflare Tunnel without opening any ports on your router.
 
 ## Notes on the data model
 
-Everything lives in one JSON blob per room (`server/data/<CODE>.json`):
-board settings, tokens, characters, players, and a capped dice log. There's
-no database — for a handful of friends this is simpler to reason about and
-easy to hand-edit if you ever need to.
+Everything lives in one JSON blob per room (`server/data/rooms/<CODE>.json`):
+board settings, tokens, characters, players, a capped dice log, and private
+whisper threads. Accounts live separately in `server/data/users.json`
+(bcrypt-hashed passwords, never plaintext). There's no database — for a
+handful of friends this is simpler to reason about and easy to hand-edit if
+you ever need to.
 
-Permissions are enforced server-side: only the GM can change the
-map/grid, and a token can only be moved/edited/deleted by its owner or the
-GM. There's no account system — the room code is the only "auth", which
-matches how Owlbear-style boards are typically used within a trusted group.
+Permissions are enforced server-side: only the GM can change the map/grid, a
+token can only be moved/edited/deleted by its owner or the GM, and every
+socket connection is authenticated by a signed login token (JWT) — a
+player's identity is derived from that token, never trusted from whatever
+the client claims. Joining a room by code is still how someone gets in the
+first time; after that, their account remembers which games they're part
+of.

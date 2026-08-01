@@ -32,9 +32,15 @@ this is the only build step needed — one process, one port.
 
 ## 3. Run it as a service (systemd)
 
-So it survives reboots and restarts itself if it ever crashes:
+So it survives reboots and restarts itself if it ever crashes. This is also
+where the account system's secrets and mail settings live — generate a real
+`JWT_SECRET` (don't skip this one; without it, everyone gets logged out on
+every restart) and fill in your mail server's SMTP details so password
+resets actually get emailed instead of just logged to the console:
 
 ```bash
+openssl rand -hex 32   # use the output as JWT_SECRET below
+
 cat > /etc/systemd/system/gamenight.service <<'EOF'
 [Unit]
 Description=Game Night
@@ -45,6 +51,13 @@ WorkingDirectory=/root/Game-night
 ExecStart=/usr/bin/npm start
 Restart=always
 Environment=PORT=4000
+Environment=PUBLIC_URL=https://game.yourdomain.com
+Environment=JWT_SECRET=<paste the openssl output here>
+Environment=SMTP_HOST=<your mail server host>
+Environment=SMTP_PORT=587
+Environment=SMTP_USER=<smtp username, if required>
+Environment=SMTP_PASS=<smtp password, if required>
+Environment=MAIL_FROM=Game Night <no-reply@yourdomain.com>
 
 [Install]
 WantedBy=multi-user.target
@@ -54,9 +67,10 @@ systemctl enable --now gamenight
 systemctl status gamenight   # confirm it's active and listening
 ```
 
-Room data (`server/data/`) and uploaded map/token images
-(`server/uploads/`) live on the container's normal filesystem, so unlike an
-ephemeral cloud host, they persist across restarts with no extra setup.
+Room data (`server/data/rooms/`), accounts (`server/data/users.json`), and
+uploaded map/token images (`server/uploads/`) all live on the container's
+normal filesystem, so unlike an ephemeral cloud host, they persist across
+restarts with no extra setup.
 Worth including in whatever backup routine the rest of the Proxmox host
 uses, but not required for it to work.
 
@@ -124,11 +138,21 @@ systemctl restart gamenight
 - **GM-hosted private chat.** The app's whisper/DM feature is private
   *between players*, enforced server-side. If the GM is also the one running
   this server, they'd still have disk access to the stored messages
-  (`server/data/<ROOM_CODE>.json`) — private from the table, not from
-  whoever operates the box. See the README for more detail.
+  (`server/data/rooms/<ROOM_CODE>.json`) — private from the table, not from
+  whoever operates the box. Same goes for `server/data/users.json`: passwords
+  are bcrypt-hashed (never recoverable), but the account list itself is
+  readable by whoever has disk access. See the README for more detail.
 - **Health check.** `systemctl status gamenight` and `systemctl status
   cloudflared` are the first two things to check if the site's unreachable.
   `journalctl -u gamenight -f` / `journalctl -u cloudflared -f` for live logs.
-- **No auth beyond the room code.** Same trust model as running it locally —
-  anyone with the URL and a room code can join. Fine for a private friend
-  group; don't post the link anywhere public.
+- **Real accounts now required.** Every player needs to sign up (name, email,
+  password) to join a game — there's no anonymous/guest join anymore. If
+  you're upgrading a server that was already running an older version of
+  this app (pre-accounts), any existing rooms won't be reachable under the
+  old anonymous identities; clear `server/data/` for a clean start before
+  your next real session.
+- **Password resets need working SMTP.** If `SMTP_HOST` isn't set (or your
+  mail server isn't reachable), reset links only get logged to the server's
+  console (`journalctl -u gamenight`) instead of emailed — someone would need
+  to fetch the link from there manually. Worth testing a real reset once
+  after deploying, to confirm mail delivery actually works end-to-end.
