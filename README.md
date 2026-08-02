@@ -92,7 +92,9 @@ over-engineered. Ideate and extend from here.
   stopped syncing. A banner shows while reconnecting so it's never silent.
 
 Not in the MVP (good candidates for v2+): fog of war, measuring/rulers,
-layers, per-token vision, richer character sheet templates per system.
+layers, per-token vision, richer character sheet templates per system. See
+[ROADMAP.md](ROADMAP.md) for these plus longer-term ideas (a VR/Quest 3
+client, a local-LLM GM assistant) and the planned self-host/hosted split.
 
 ## Project layout
 
