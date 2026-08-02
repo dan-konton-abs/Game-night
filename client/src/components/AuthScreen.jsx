@@ -41,7 +41,7 @@ export default function AuthScreen({ onAuthenticated }) {
   return (
     <div className="home-screen">
       <div className="home-card">
-        <h1>🎲 Game Night</h1>
+        <h1>🎲 Welcome to the Ante-Chamber</h1>
         <p className="subtitle">A shared game board for your online sessions.</p>
 
         {mode !== "forgot" && (

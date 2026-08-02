@@ -61,9 +61,9 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
   const totalUnread = unreadEveryone + Object.values(unreadWhispers).reduce((a, b) => a + b, 0);
 
   useEffect(() => {
-    document.title = totalUnread > 0 ? `(${totalUnread}) Game Night` : "Game Night";
+    document.title = totalUnread > 0 ? `(${totalUnread}) The Ante-Chamber` : "The Ante-Chamber";
     return () => {
-      document.title = "Game Night";
+      document.title = "The Ante-Chamber";
     };
   }, [totalUnread]);
 

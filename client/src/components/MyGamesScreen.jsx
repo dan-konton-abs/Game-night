@@ -99,7 +99,7 @@ export default function MyGamesScreen({ user, games, onLogout, onRefreshGames })
       <div className="home-card games-card">
         <div className="games-header">
           <div>
-            <h1>🎲 Game Night</h1>
+            <h1>🎲 The Ante-Chamber</h1>
             <p className="subtitle">Signed in as {user.name}</p>
           </div>
           <button type="button" className="link-button" onClick={onLogout}>
