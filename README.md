@@ -69,7 +69,12 @@ over-engineered. Ideate and extend from here.
   round tracked automatically; a badge appears on the Initiative tab for
   whoever's turn it is if they're looking at a different tab. Ending combat
   keeps the combatant list around so the same lineup can be reused for the
-  next encounter.
+  next encounter. The GM can toggle "Turn reminders" on/off (on by default):
+  when on, whoever's turn it is gets a themed pop-up in the top-right corner
+  of the map itself - "Your Turn!" plus a Complete Turn button that advances
+  initiative without needing to switch to the Initiative tab. Switched off,
+  the table just tracks turns themselves off the visible list, same as
+  before this existed.
 - **Accounts.** Name, email, and password — a real login rather than a
   browser-local identity, so you can pick up any game from any device.
   Forgotten passwords are reset via an emailed link (server-side SMTP,

@@ -101,6 +101,17 @@ export default function Board({ room, playerId, isGM }) {
     setAddingToken(false);
   }
 
+  const initiative = room.initiative;
+  const isMyTurn = !!(
+    initiative?.active &&
+    initiative?.notifyTurns &&
+    initiative.entries[initiative.currentIndex]?.playerId === playerId
+  );
+
+  function completeTurn() {
+    socket.emit("initiative:next");
+  }
+
   const board = room.board;
   const gridLineColor = room.theme === "scifi" ? "rgba(51,255,122,0.35)" : "rgba(255,255,255,0.12)";
   const gridStyle = board.showGrid
@@ -176,6 +187,15 @@ export default function Board({ room, playerId, isGM }) {
             )}
           </div>
         </div>
+
+        {isMyTurn && (
+          <div className="turn-notification">
+            <div className="turn-notification-text">⚔ Your Turn!</div>
+            <button type="button" className="primary" onClick={completeTurn}>
+              Complete Turn
+            </button>
+          </div>
+        )}
 
         <div className="zoom-controls">
           <button type="button" onClick={() => zoomByButton(-ZOOM_STEP)} title="Zoom out">

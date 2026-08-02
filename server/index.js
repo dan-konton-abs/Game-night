@@ -758,7 +758,7 @@ io.on("connection", (socket) => {
   });
 
   function ensureInitiative(room) {
-    if (!room.initiative) room.initiative = { active: false, round: 1, currentIndex: 0, entries: [] };
+    if (!room.initiative) room.initiative = { active: false, round: 1, currentIndex: 0, entries: [], notifyTurns: true };
     return room.initiative;
   }
 
@@ -866,7 +866,20 @@ io.on("connection", (socket) => {
     const room = currentRoom();
     if (!room) return;
     if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can clear initiative.");
-    room.initiative = { active: false, round: 1, currentIndex: 0, entries: [] };
+    // Clearing the combatant list is a fresh start for the fight, but it
+    // shouldn't silently reset the GM's notification preference along with it.
+    const notifyTurns = room.initiative?.notifyTurns ?? true;
+    room.initiative = { active: false, round: 1, currentIndex: 0, entries: [], notifyTurns };
+    broadcast(room);
+  });
+
+  socket.on("initiative:setNotify", ({ enabled }) => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can change this setting.");
+
+    const initiative = ensureInitiative(room);
+    initiative.notifyTurns = !!enabled;
     broadcast(room);
   });
 

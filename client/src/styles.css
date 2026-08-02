@@ -443,6 +443,41 @@ label {
   display: flex;
 }
 
+/* "Your Turn" reminder - map top-right corner, only shown to whoever's turn
+   it currently is (and only when the GM has turn notifications switched on). */
+.turn-notification {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  animation: turn-notification-in 0.25s ease-out;
+  z-index: 6;
+}
+
+.turn-notification-text {
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+@keyframes turn-notification-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .token {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -964,6 +999,17 @@ fieldset {
 }
 
 /* Initiative */
+.turn-notify-toggle {
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.turn-notify-toggle input {
+  width: auto;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
 .initiative-list {
   list-style: none;
   padding: 0;
@@ -1233,6 +1279,14 @@ fieldset {
 
 .game-screen[data-theme="scifi"] .token.mine {
   box-shadow: 0 0 14px 3px rgba(51, 255, 122, 0.85), 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.game-screen[data-theme="scifi"] .turn-notification {
+  box-shadow: 0 0 18px rgba(51, 255, 122, 0.5), 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.game-screen[data-theme="scifi"] .turn-notification-text {
+  text-shadow: 0 0 6px rgba(51, 255, 122, 0.8);
 }
 
 .game-screen[data-theme="scifi"] .die-face {

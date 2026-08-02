@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { socket } from "../socket.js";
 
 export default function InitiativePanel({ room, playerId, isGM }) {
-  const initiative = room.initiative || { active: false, round: 1, currentIndex: 0, entries: [] };
+  const initiative = room.initiative || { active: false, round: 1, currentIndex: 0, entries: [], notifyTurns: true };
   const [name, setName] = useState("");
   const [value, setValue] = useState(10);
 
@@ -37,12 +37,29 @@ export default function InitiativePanel({ room, playerId, isGM }) {
   function removeEntry(entryId) {
     socket.emit("initiative:removeEntry", { entryId });
   }
+  function setNotifyTurns(enabled) {
+    socket.emit("initiative:setNotify", { enabled });
+  }
 
   return (
     <div className="panel initiative-panel">
       <h3>
         Initiative {initiative.active && <span className="muted small">· Round {initiative.round}</span>}
       </h3>
+
+      {isGM && (
+        <label className="inline-row turn-notify-toggle">
+          <input
+            type="checkbox"
+            checked={initiative.notifyTurns}
+            onChange={(e) => setNotifyTurns(e.target.checked)}
+          />
+          Pop up a "Your Turn" reminder on the map when it's someone's turn
+        </label>
+      )}
+      {!isGM && !initiative.notifyTurns && initiative.active && (
+        <p className="hint">Turn reminders are off - keep track of your own turn.</p>
+      )}
 
       {initiative.entries.length === 0 && (
         <p className="muted">

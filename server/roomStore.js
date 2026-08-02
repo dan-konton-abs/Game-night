@@ -57,7 +57,7 @@ function blankRoom(code) {
     chat: [],
     whispers: {},
     scenes: {},
-    initiative: { active: false, round: 1, currentIndex: 0, entries: [] },
+    initiative: { active: false, round: 1, currentIndex: 0, entries: [], notifyTurns: true },
     theme: "default",
     locker: { tokens: {}, maps: {}, monsters: {} },
   };
@@ -96,7 +96,8 @@ function ensureLoaded(code) {
     if (!loaded.scenes) loaded.scenes = {};
     if (!loaded.name) loaded.name = null;
     if (!loaded.updatedAt) loaded.updatedAt = loaded.createdAt || Date.now();
-    if (!loaded.initiative) loaded.initiative = { active: false, round: 1, currentIndex: 0, entries: [] };
+    if (!loaded.initiative) loaded.initiative = { active: false, round: 1, currentIndex: 0, entries: [], notifyTurns: true };
+    if (loaded.initiative.notifyTurns === undefined) loaded.initiative.notifyTurns = true;
     if (!loaded.theme) loaded.theme = "default";
     if (!loaded.locker) loaded.locker = { tokens: {}, maps: {}, monsters: {} };
     rooms.set(code, loaded);
