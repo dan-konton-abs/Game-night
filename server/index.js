@@ -789,17 +789,22 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
-  socket.on("initiative:addEntry", ({ name, value }) => {
+  socket.on("initiative:addEntry", ({ name, value, playerId: linkPlayerId }) => {
     const room = currentRoom();
     if (!room) return;
     if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can add to initiative.");
 
     const initiative = ensureInitiative(room);
+    // Linking to a real player (rather than a free-text NPC/monster name) is
+    // what lets the turn-notification popup ever reach that specific player -
+    // an unlinked entry is understood to be a monster the GM personally plays.
+    const linkedPlayer = linkPlayerId && room.players[linkPlayerId] ? room.players[linkPlayerId] : null;
+    const cleanName = clampText(name, 40).trim();
     initiative.entries.push({
       id: store.newId(),
-      name: clampText(name, 40).trim() || "Unnamed",
+      name: cleanName || (linkedPlayer ? room.characters[linkedPlayer.characterId]?.name || linkedPlayer.name : "Unnamed"),
       value: Math.min(99, Math.max(-99, Math.round(Number(value)) || 0)),
-      playerId: null,
+      playerId: linkedPlayer?.id || null,
     });
     if (!initiative.active) initiative.entries.sort((a, b) => b.value - a.value);
 

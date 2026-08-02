@@ -75,8 +75,14 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
   }, [isGM, tab]);
 
   const initiative = room.initiative;
+  const currentInitiativeEntry = initiative?.active ? initiative.entries[initiative.currentIndex] : null;
+  // An unlinked entry (no playerId) is a monster/NPC the GM personally plays,
+  // so the tab badge should nudge the GM for those turns too, same as the
+  // on-map popup does - independent of the notifyTurns toggle, which only
+  // gates the popup itself.
   const isMyTurn = !!(
-    initiative?.active && initiative.entries[initiative.currentIndex]?.playerId === playerId
+    currentInitiativeEntry &&
+    (currentInitiativeEntry.playerId === playerId || (currentInitiativeEntry.playerId === null && isGM))
   );
 
   const tabs = useMemo(() => {

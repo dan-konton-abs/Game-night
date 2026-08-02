@@ -1004,6 +1004,14 @@ fieldset {
   margin-bottom: 14px;
 }
 
+.initiative-group-label {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
 .turn-notify-toggle input {
   width: auto;
   margin-top: 3px;
@@ -1066,7 +1074,8 @@ fieldset {
   margin-bottom: 12px;
 }
 
-.initiative-add-form input:first-child {
+.initiative-add-form input:first-child,
+.initiative-add-form select:first-child {
   flex: 1;
 }
 

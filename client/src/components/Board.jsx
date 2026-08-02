@@ -102,10 +102,14 @@ export default function Board({ room, playerId, isGM }) {
   }
 
   const initiative = room.initiative;
+  const currentEntry = initiative?.active ? initiative.entries[initiative.currentIndex] : null;
+  // An entry with no playerId is a monster/NPC the GM personally plays, so
+  // the GM is who should get prompted for it - not nobody, which is what a
+  // plain playerId match would give you every time a monster's turn came up.
   const isMyTurn = !!(
-    initiative?.active &&
     initiative?.notifyTurns &&
-    initiative.entries[initiative.currentIndex]?.playerId === playerId
+    currentEntry &&
+    (currentEntry.playerId === playerId || (currentEntry.playerId === null && isGM))
   );
 
   function completeTurn() {

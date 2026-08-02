@@ -62,19 +62,27 @@ over-engineered. Ideate and extend from here.
   Damage/Heal buttons adjust HP by that much in one click instead of typing
   a new total, and always stay clamped between 0 and Max HP.
 - **Initiative tracker.** "Start Combat" auto-adds everyone currently in the
-  game; the GM can also add NPCs/monsters with their own initiative value.
-  Order locks in once combat starts (editing a value mid-fight doesn't
-  reshuffle turn order, matching how it works at a real table). Either the
-  GM or whoever's turn it currently is can advance to the next turn, with
-  round tracked automatically; a badge appears on the Initiative tab for
-  whoever's turn it is if they're looking at a different tab. Ending combat
-  keeps the combatant list around so the same lineup can be reused for the
-  next encounter. The GM can toggle "Turn reminders" on/off (on by default):
-  when on, whoever's turn it is gets a themed pop-up in the top-right corner
-  of the map itself - "Your Turn!" plus a Complete Turn button that advances
-  initiative without needing to switch to the Initiative tab. Switched off,
-  the table just tracks turns themselves off the visible list, same as
-  before this existed.
+  game; the GM can also explicitly link any player to a turn with a custom
+  value (a dropdown lists whoever isn't linked yet), and add NPCs/monsters
+  with their own initiative value and no player attached. The list is
+  grouped into "Players" and "GM's Monsters" so it's obvious at a glance
+  what the GM has in the fight, while the actual turn order underneath
+  still runs as one correctly-interleaved sequence by value. Order locks in
+  once combat starts (editing a value mid-fight doesn't reshuffle turn
+  order, matching how it works at a real table). Either the GM or whoever's
+  turn it currently is can advance to the next turn, with round tracked
+  automatically; a badge appears on the Initiative tab for whoever's turn
+  it is if they're looking at a different tab. Ending combat keeps the
+  combatant list around so the same lineup can be reused for the next
+  encounter. The GM can toggle "Turn reminders" on/off (on by default):
+  when on, whoever's turn it is gets a themed pop-up in the top-right
+  corner of the map itself - "Your Turn!" plus a Complete Turn button that
+  advances initiative without needing to switch to the Initiative tab.
+  Since the GM plays every monster/NPC, they get that same pop-up whenever
+  it's one of their unlinked entries' turn too - the sequence flows player
+  → player → GM (for each monster in turn) → next player, and so on.
+  Switched off, the table just tracks turns themselves off the visible
+  list, same as before this existed.
 - **Accounts.** Name, email, and password — a real login rather than a
   browser-local identity, so you can pick up any game from any device.
   Forgotten passwords are reset via an emailed link (server-side SMTP,
