@@ -440,21 +440,38 @@ label {
 
 /* Sidebar */
 .sidebar {
-  width: 340px;
   flex-shrink: 0;
   border-left: 1px solid var(--border);
   background: var(--panel);
   display: flex;
   flex-direction: column;
+  min-width: 0;
+}
+
+/* Draggable divider between the board and the sidebar - lets the sidebar
+   grow independently of the map instead of being stuck at a fixed width. */
+.sidebar-resize-handle {
+  flex-shrink: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: var(--border);
+  touch-action: none;
+}
+
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle:active {
+  background: var(--accent);
 }
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--border);
 }
 
 .tabs button {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 92px;
   border: none;
   border-radius: 0;
   background: transparent;
@@ -960,10 +977,15 @@ fieldset {
     flex-direction: column;
   }
   .sidebar {
-    width: 100%;
+    /* Overrides the draggable inline width - dragging doesn't apply once
+       the layout is stacked instead of side-by-side. */
+    width: 100% !important;
     border-left: none;
     border-top: 1px solid var(--border);
     max-height: 45vh;
+  }
+  .sidebar-resize-handle {
+    display: none;
   }
 }
 

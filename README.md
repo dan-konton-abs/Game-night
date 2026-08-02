@@ -14,7 +14,9 @@ over-engineered. Ideate and extend from here.
   picked at creation time (currently Classic/default or a Sci-Fi ship-cockpit
   look) and applies for everyone in the room; the GM can change it later from
   GM Tools. Adding another theme is just a CSS block plus a registry entry -
-  see `client/src/themes.js`.
+  see `client/src/themes.js`. The sidebar (Chat/Dice/Character/etc.) can be
+  dragged wider or narrower from its left edge if the tabs ever feel cramped
+  for your screen/font - it remembers your chosen width next time.
 - **Shared board.** The GM sets a background map (paste an image URL, or
   upload an image file). An optional grid overlay can be toggled/resized.
   Anyone can independently zoom in/out on their own view (buttons, or

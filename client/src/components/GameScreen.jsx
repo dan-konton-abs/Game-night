@@ -7,6 +7,17 @@ import PlayersPanel from "./PlayersPanel.jsx";
 import InitiativePanel from "./InitiativePanel.jsx";
 import GMPanel from "./GMPanel.jsx";
 
+const SIDEBAR_WIDTH_KEY = "gamenight:sidebarWidth";
+const SIDEBAR_MIN = 280;
+const SIDEBAR_MAX = 640;
+const SIDEBAR_DEFAULT = 340;
+
+function loadSidebarWidth() {
+  const stored = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+  if (!stored || Number.isNaN(stored)) return SIDEBAR_DEFAULT;
+  return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, stored));
+}
+
 export default function GameScreen({ room, whispers, whisperHistoryLoaded, playerId, identity, onLeave, connected }) {
   const me = room.players[playerId];
   const isGM = room.gmPlayerId === playerId;
@@ -15,6 +26,8 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
   const [activeThread, setActiveThread] = useState("everyone");
   const [seenCounts, setSeenCounts] = useState({ everyone: 0, whispers: {} });
   const baselineCapturedRef = useRef(false);
+  const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth);
+  const resizeStartRef = useRef(null);
 
   // Treat all history that already exists once we've fully loaded (including
   // whisper history, which arrives a moment after room:state) as "seen", so
@@ -80,6 +93,28 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
     navigator.clipboard?.writeText(room.code).catch(() => {});
   }
 
+  // The sidebar's tabs and panels are independent of the map, so its width
+  // shouldn't be at the mercy of however much room happens to be left after
+  // the board - a narrow window (or just a wider font rendering than
+  // expected) can otherwise squeeze the last tab(s) out of sight with no way
+  // to reach them. Dragging this handle is the escape hatch.
+  function onResizeStart(e) {
+    e.preventDefault();
+    resizeStartRef.current = { x: e.clientX, width: sidebarWidth };
+    e.target.setPointerCapture(e.pointerId);
+  }
+  function onResizeMove(e) {
+    if (!resizeStartRef.current) return;
+    const { x, width } = resizeStartRef.current;
+    const next = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, width + (x - e.clientX)));
+    setSidebarWidth(next);
+  }
+  function onResizeEnd() {
+    if (!resizeStartRef.current) return;
+    resizeStartRef.current = null;
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
+  }
+
   return (
     <div className="game-screen" data-theme={room.theme || "default"}>
       {!connected && (
@@ -101,7 +136,15 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
       <div className="game-body">
         <Board room={room} playerId={playerId} isGM={isGM} />
 
-        <aside className="sidebar">
+        <div
+          className="sidebar-resize-handle"
+          onPointerDown={onResizeStart}
+          onPointerMove={onResizeMove}
+          onPointerUp={onResizeEnd}
+          title="Drag to resize"
+        />
+
+        <aside className="sidebar" style={{ width: sidebarWidth }}>
           <nav className="tabs">
             {tabs.map((t) => (
               <button key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
