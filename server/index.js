@@ -567,6 +567,196 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
+  // The Locker is the GM's reusable asset library - token/monster appearance
+  // presets and map backgrounds that outlive any one scene, so a favorite
+  // prop or recurring villain doesn't need to be rebuilt from scratch every
+  // time it comes up again.
+  socket.on("locker:saveToken", ({ id, label, color, imageUrl, size }, ack) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can save Locker presets.");
+
+    const existing = id && room.locker.tokens[id];
+    const presetId = existing ? id : store.newId();
+    room.locker.tokens[presetId] = {
+      id: presetId,
+      label: clampText(label, 30) || existing?.label || "Token",
+      color: clampText(color, 20) || existing?.color || "#5b8def",
+      imageUrl: clampText(imageUrl, 2000) || null,
+      size: Math.min(Math.max(Number(size) || 48, 16), 200),
+    };
+
+    broadcast(room);
+    ack?.({ ok: true, id: presetId });
+  });
+
+  socket.on("locker:renameToken", ({ id, label }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can rename Locker presets.");
+    const preset = room.locker.tokens[id];
+    if (!preset) return;
+
+    preset.label = clampText(label, 30).trim() || preset.label;
+    broadcast(room);
+  });
+
+  socket.on("locker:deleteToken", ({ id }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can delete Locker presets.");
+    if (!room.locker.tokens[id]) return;
+
+    delete room.locker.tokens[id];
+    broadcast(room);
+  });
+
+  socket.on("locker:placeToken", ({ id }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can place Locker tokens.");
+    const preset = room.locker.tokens[id];
+    if (!preset) return publicError(socket, "That token preset no longer exists.");
+
+    const tokenId = store.newId();
+    room.tokens[tokenId] = {
+      id: tokenId,
+      x: 50,
+      y: 50,
+      size: preset.size,
+      label: preset.label,
+      color: preset.color,
+      imageUrl: preset.imageUrl,
+      ownerId: null,
+    };
+
+    broadcast(room);
+  });
+
+  socket.on("locker:saveMap", ({ id, name, backgroundUrl }, ack) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can save Locker presets.");
+
+    const existing = id && room.locker.maps[id];
+    const presetId = existing ? id : store.newId();
+    room.locker.maps[presetId] = {
+      id: presetId,
+      name: clampText(name, 60).trim() || existing?.name || `Map ${Object.keys(room.locker.maps).length + 1}`,
+      backgroundUrl: clampText(backgroundUrl, 2000) || existing?.backgroundUrl || null,
+    };
+
+    broadcast(room);
+    ack?.({ ok: true, id: presetId });
+  });
+
+  socket.on("locker:renameMap", ({ id, name }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can rename Locker presets.");
+    const preset = room.locker.maps[id];
+    if (!preset) return;
+
+    preset.name = clampText(name, 60).trim() || preset.name;
+    broadcast(room);
+  });
+
+  socket.on("locker:deleteMap", ({ id }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can delete Locker presets.");
+    if (!room.locker.maps[id]) return;
+
+    delete room.locker.maps[id];
+    broadcast(room);
+  });
+
+  socket.on("locker:applyMap", ({ id }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can change the map.");
+    const preset = room.locker.maps[id];
+    if (!preset) return publicError(socket, "That map preset no longer exists.");
+
+    room.board.backgroundUrl = preset.backgroundUrl;
+    broadcast(room);
+  });
+
+  socket.on("locker:saveMonster", ({ id, name, color, imageUrl, size, notes }, ack) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can save Locker presets.");
+
+    const existing = id && room.locker.monsters[id];
+    const presetId = existing ? id : store.newId();
+    room.locker.monsters[presetId] = {
+      id: presetId,
+      name: clampText(name, 30) || existing?.name || "Monster",
+      color: clampText(color, 20) || existing?.color || "#e2574c",
+      imageUrl: clampText(imageUrl, 2000) || null,
+      size: Math.min(Math.max(Number(size) || 48, 16), 200),
+      notes: clampText(notes, 2000),
+    };
+
+    broadcast(room);
+    ack?.({ ok: true, id: presetId });
+  });
+
+  socket.on("locker:renameMonster", ({ id, name }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can rename Locker presets.");
+    const preset = room.locker.monsters[id];
+    if (!preset) return;
+
+    preset.name = clampText(name, 30).trim() || preset.name;
+    broadcast(room);
+  });
+
+  socket.on("locker:deleteMonster", ({ id }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can delete Locker presets.");
+    if (!room.locker.monsters[id]) return;
+
+    delete room.locker.monsters[id];
+    broadcast(room);
+  });
+
+  socket.on("locker:placeMonster", ({ id }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can place Locker monsters.");
+    const preset = room.locker.monsters[id];
+    if (!preset) return publicError(socket, "That monster preset no longer exists.");
+
+    const tokenId = store.newId();
+    room.tokens[tokenId] = {
+      id: tokenId,
+      x: 50,
+      y: 50,
+      size: preset.size,
+      label: preset.name,
+      color: preset.color,
+      imageUrl: preset.imageUrl,
+      ownerId: null,
+    };
+
+    broadcast(room);
+  });
+
   function ensureInitiative(room) {
     if (!room.initiative) room.initiative = { active: false, round: 1, currentIndex: 0, entries: [] };
     return room.initiative;

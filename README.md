@@ -81,6 +81,14 @@ over-engineered. Ideate and extend from here.
   updated (re-saved over themselves), renamed, or deleted; switching prompts
   a reminder to save first if you want to keep the current setup, since
   loading replaces the live board/tokens.
+- **Locker.** A GM-only tab for reusable assets that outlive any one scene:
+  save a token's appearance (label/image/color/size) as a preset and place a
+  fresh copy on the board any time; save a background image as a reusable
+  map preset and apply it to the live board whenever that location comes
+  back up (lighter-weight than a Scene, which also snapshots token
+  positions); save a recurring monster/NPC's appearance plus free-form notes
+  (stat block, tactics, whatever's useful) and drop it in whenever it shows
+  up again. Everything in the Locker can be renamed or deleted.
 - **My Games dashboard.** After logging in you land on a list of every game
   you're part of (as GM or player), each with a name the GM can set (and
   rename any time), so you can run more than one game at a time and resume

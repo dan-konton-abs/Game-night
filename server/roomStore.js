@@ -59,6 +59,7 @@ function blankRoom(code) {
     scenes: {},
     initiative: { active: false, round: 1, currentIndex: 0, entries: [] },
     theme: "default",
+    locker: { tokens: {}, maps: {}, monsters: {} },
   };
 }
 
@@ -97,6 +98,7 @@ function ensureLoaded(code) {
     if (!loaded.updatedAt) loaded.updatedAt = loaded.createdAt || Date.now();
     if (!loaded.initiative) loaded.initiative = { active: false, round: 1, currentIndex: 0, entries: [] };
     if (!loaded.theme) loaded.theme = "default";
+    if (!loaded.locker) loaded.locker = { tokens: {}, maps: {}, monsters: {} };
     rooms.set(code, loaded);
     return loaded;
   }

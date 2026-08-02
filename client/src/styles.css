@@ -241,6 +241,92 @@ label {
   padding: 4px 8px;
 }
 
+/* Locker (GM's reusable token/map/monster presets) */
+.locker-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Two rows per item (swatch+name, then actions) rather than one crammed
+   row - three action buttons is a lot of fixed-width horizontal space, and
+   packing everything into a single flex row squeezed the name/notes column
+   down to a sliver (it was the only item allowed to shrink), so the text
+   visually overflowed past its own box instead of the layout adapting. */
+.locker-list-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--panel-alt);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.locker-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.locker-swatch {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+}
+
+.locker-name {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.locker-name-notes {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.locker-notes {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.locker-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.locker-actions button {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+}
+
+.locker-panel form {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.locker-panel form:last-child {
+  border-bottom: none;
+}
+
 /* Game screen layout */
 .game-screen {
   height: 100%;

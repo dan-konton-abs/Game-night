@@ -6,6 +6,7 @@ import CharacterSheet from "./CharacterSheet.jsx";
 import PlayersPanel from "./PlayersPanel.jsx";
 import InitiativePanel from "./InitiativePanel.jsx";
 import GMPanel from "./GMPanel.jsx";
+import LockerPanel from "./LockerPanel.jsx";
 
 const SIDEBAR_WIDTH_KEY = "gamenight:sidebarWidth";
 const SIDEBAR_MIN = 280;
@@ -66,10 +67,11 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
     };
   }, [totalUnread]);
 
-  // If GM duties get transferred away from us mid-session, the GM Tools tab
-  // disappears - don't leave the user stranded on a tab that no longer exists.
+  // If GM duties get transferred away from us mid-session, the GM Tools and
+  // Locker tabs disappear - don't leave the user stranded on a tab that no
+  // longer exists.
   useEffect(() => {
-    if (!isGM && tab === "gm") setTab("chat");
+    if (!isGM && (tab === "gm" || tab === "locker")) setTab("chat");
   }, [isGM, tab]);
 
   const initiative = room.initiative;
@@ -85,7 +87,10 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
       { id: "character", label: "📜 Character" },
       { id: "players", label: "👥 Players" },
     ];
-    if (isGM) base.push({ id: "gm", label: "🛠 GM Tools" });
+    if (isGM) {
+      base.push({ id: "locker", label: "🗄 Locker" });
+      base.push({ id: "gm", label: "🛠 GM Tools" });
+    }
     return base;
   }, [isGM]);
 
@@ -179,6 +184,7 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
               />
             )}
             {tab === "players" && <PlayersPanel room={room} playerId={playerId} isGM={isGM} />}
+            {tab === "locker" && isGM && <LockerPanel room={room} />}
             {tab === "gm" && isGM && <GMPanel room={room} />}
           </div>
         </aside>
