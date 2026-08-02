@@ -6,7 +6,7 @@ export const THEMES = [
   {
     id: "default",
     label: "Classic (Default)",
-    description: "The regular Game Night look.",
+    description: "The regular Ante-Chamber look.",
   },
   {
     id: "scifi",

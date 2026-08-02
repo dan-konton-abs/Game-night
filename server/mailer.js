@@ -26,9 +26,9 @@ async function sendPasswordResetEmail(to, resetUrl) {
     return;
   }
   await transporter.sendMail({
-    from: MAIL_FROM || `Game Night <no-reply@${SMTP_HOST}>`,
+    from: MAIL_FROM || `The Ante-Chamber <no-reply@${SMTP_HOST}>`,
     to,
-    subject: "Reset your Game Night password",
+    subject: "Reset your Ante-Chamber password",
     text: `Reset your password: ${resetUrl}\n\nThis link expires in 1 hour. If you didn't request this, ignore this email.`,
     html: `<p><a href="${resetUrl}">Reset your password</a></p><p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>`,
   });

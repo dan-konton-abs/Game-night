@@ -1,4 +1,4 @@
-# Deploying Game Night on a Proxmox LXC
+# Deploying The Ante-Chamber on a Proxmox LXC
 
 A runbook for self-hosting the app on a home Proxmox server, reachable
 publicly via a Cloudflare Tunnel (no port-forwarding required). Written for
@@ -43,7 +43,7 @@ openssl rand -hex 32   # use the output as JWT_SECRET below
 
 cat > /etc/systemd/system/gamenight.service <<'EOF'
 [Unit]
-Description=Game Night
+Description=The Ante-Chamber
 After=network.target
 
 [Service]
@@ -57,7 +57,7 @@ Environment=SMTP_HOST=<your mail server host>
 Environment=SMTP_PORT=587
 Environment=SMTP_USER=<smtp username, if required>
 Environment=SMTP_PASS=<smtp password, if required>
-Environment=MAIL_FROM=Game Night <no-reply@yourdomain.com>
+Environment=MAIL_FROM=The Ante-Chamber <no-reply@yourdomain.com>
 
 [Install]
 WantedBy=multi-user.target

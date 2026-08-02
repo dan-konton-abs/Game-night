@@ -788,5 +788,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Game Night server listening on port ${PORT}`);
+  console.log(`The Ante-Chamber server listening on port ${PORT}`);
 });

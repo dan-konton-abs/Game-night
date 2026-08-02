@@ -24,7 +24,7 @@ export default function ResetPasswordScreen({ uid, token }) {
   return (
     <div className="home-screen">
       <div className="home-card">
-        <h1>🎲 Game Night</h1>
+        <h1>🎲 The Ante-Chamber</h1>
         {done ? (
           <>
             <p>Password updated. You can log in with it now.</p>
