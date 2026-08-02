@@ -38,7 +38,11 @@ over-engineered. Ideate and extend from here.
     tell them apart); a 1 on any stress die is flagged as a Panic trigger.
   Every roll plays an animated tumble for everyone currently on the Dice
   tab — d6 shows real pip faces — landing on the real server-computed
-  result, then joins the shared log.
+  result, then joins the shared log. On the Sci-Fi theme, a per-player
+  "Dice skin" picker swaps the die look between Classic, an LED numeral
+  readout, a translucent holographic projection, or an angular hex panel -
+  purely cosmetic and local to your browser, doesn't affect anyone else's
+  view.
 - **Chat.** A shared text log alongside the board, for anything easier to
   type than say over voice (links, OOC notes, etc). A selector at the top
   switches between the shared "Everyone" channel and a private 1:1 whisper

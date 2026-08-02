@@ -1157,6 +1157,75 @@ fieldset {
   box-shadow: 0 0 8px rgba(51, 255, 122, 0.35);
 }
 
+/* Dice skins - purely cosmetic variants on top of the base sci-fi die-face,
+   selectable per-player from the Dice tab (localStorage, not room state). */
+
+.game-screen[data-theme="scifi"] .die-face.die-skin-led {
+  border-radius: 3px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 8px rgba(51, 255, 122, 0.9), 0 0 2px rgba(51, 255, 122, 0.9);
+  box-shadow: inset 0 0 6px rgba(51, 255, 122, 0.35), 0 0 6px rgba(51, 255, 122, 0.3);
+}
+
+.game-screen[data-theme="scifi"] .die-face.die-skin-holo {
+  background: rgba(51, 255, 122, 0.1);
+  border-color: rgba(51, 255, 122, 0.5);
+  box-shadow: 0 0 16px rgba(51, 255, 122, 0.55), inset 0 0 10px rgba(51, 255, 122, 0.25);
+  animation: die-holo-flicker 2.6s ease-in-out infinite;
+}
+
+/* die-holo-flicker only touches opacity and die-spin/die-settle only touch
+   transform, so layering them (rather than letting one override the other,
+   which is what would happen with a single animation value at this
+   specificity) keeps the spin/settle motion and the flicker running
+   together instead of the flicker silently cancelling them. */
+.game-screen[data-theme="scifi"] .die-face.die-skin-holo.spinning {
+  animation: die-spin 0.35s linear infinite, die-holo-flicker 2.6s ease-in-out infinite;
+}
+
+.game-screen[data-theme="scifi"] .die-face.die-skin-holo.settled {
+  animation: die-settle 0.3s ease-out, die-holo-flicker 2.6s ease-in-out infinite;
+}
+
+@keyframes die-holo-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  42% {
+    opacity: 0.82;
+  }
+  46% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 0.9;
+  }
+}
+
+.game-screen[data-theme="scifi"] .die-face.die-skin-hex {
+  border: none;
+  border-radius: 0;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  /* box-shadow gets clipped along with everything else by clip-path, so it
+     can't bleed a soft glow past the hex edge the way it can on a rounded
+     square - filter:drop-shadow runs after clipping and follows the actual
+     silhouette instead, which is what gives this one a real ambient glow. */
+  filter: drop-shadow(0 0 6px rgba(51, 255, 122, 0.7));
+  box-shadow: none;
+}
+
+.game-screen[data-theme="scifi"] .die-face.die-skin-hex.die-stress {
+  background: #1a0503;
+  filter: drop-shadow(0 0 7px rgba(255, 68, 51, 0.75));
+}
+
+.game-screen[data-theme="scifi"] .die-face.die-skin-hex.die-success {
+  background: #06210f;
+  filter: drop-shadow(0 0 9px rgba(51, 255, 122, 0.95));
+}
+
 .game-screen[data-theme="scifi"] .board-viewport,
 .game-screen[data-theme="scifi"] .tab-content,
 .game-screen[data-theme="scifi"] .chat-messages {

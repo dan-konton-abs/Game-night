@@ -5,6 +5,13 @@ const QUICK_DICE = [4, 6, 8, 10, 12, 20, 100];
 const MAX_DICE = 20;
 const PIP_FACES = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
 const MODE_KEY = "gamenight:diceMode";
+const SKIN_KEY = "gamenight:diceSkin";
+const DICE_SKINS = [
+  { id: "pips", label: "Classic" },
+  { id: "led", label: "LED Readout" },
+  { id: "holo", label: "Holographic" },
+  { id: "hex", label: "Hex Panel" },
+];
 
 function timeAgo(ts) {
   const diff = Math.max(0, Date.now() - ts);
@@ -32,11 +39,14 @@ function diceFromEntry(entry) {
   return entry.rolls.map((v) => ({ sides, value: v, variant: "normal" }));
 }
 
-function DieFace({ sides, value, variant, spinning }) {
-  const pip = sides === 6 && value >= 1 && value <= 6;
+function DieFace({ sides, value, variant, spinning, skin = "pips" }) {
+  // The LED skin is a digital readout, not a physical die - it always shows
+  // the numeral, even for a d6 that would otherwise show pips.
+  const pip = skin !== "led" && sides === 6 && value >= 1 && value <= 6;
   const success = !spinning && variant !== "normal" && value === 6;
   const classes = [
     "die-face",
+    `die-skin-${skin}`,
     pip && "die-pips",
     value >= 100 && "die-face-small",
     variant === "stress" && "die-stress",
@@ -48,7 +58,7 @@ function DieFace({ sides, value, variant, spinning }) {
   return <div className={classes}>{pip ? PIP_FACES[value] : value}</div>;
 }
 
-function DiceTray({ entry }) {
+function DiceTray({ entry, skin }) {
   const dice = useMemo(() => diceFromEntry(entry), [entry]);
   const stagger = Math.max(30, Math.min(130, 900 / Math.max(dice.length, 1)));
   const [values, setValues] = useState(dice.map((d) => 1 + Math.floor(Math.random() * d.sides)));
@@ -100,7 +110,7 @@ function DiceTray({ entry }) {
       </div>
       <div className="dice-tray-dice">
         {dice.map((d, i) => (
-          <DieFace key={i} sides={d.sides} value={values[i]} variant={d.variant} spinning={spinning} />
+          <DieFace key={i} sides={d.sides} value={values[i]} variant={d.variant} spinning={spinning} skin={skin} />
         ))}
       </div>
       {!spinning &&
@@ -121,6 +131,7 @@ function DiceTray({ entry }) {
 
 export default function DicePanel({ room }) {
   const [mode, setMode] = useState(() => localStorage.getItem(MODE_KEY) || "dnd");
+  const [skin, setSkin] = useState(() => localStorage.getItem(SKIN_KEY) || "pips");
   const [formula, setFormula] = useState("1d20");
   const [label, setLabel] = useState("");
   const [selectedSides, setSelectedSides] = useState(20);
@@ -134,6 +145,10 @@ export default function DicePanel({ room }) {
   useEffect(() => {
     localStorage.setItem(MODE_KEY, mode);
   }, [mode]);
+
+  useEffect(() => {
+    localStorage.setItem(SKIN_KEY, skin);
+  }, [skin]);
 
   useEffect(() => {
     const newest = room.diceLog[0];
@@ -171,6 +186,19 @@ export default function DicePanel({ room }) {
           Alien RPG
         </button>
       </div>
+
+      {room.theme === "scifi" && (
+        <label>
+          Dice skin
+          <select value={skin} onChange={(e) => setSkin(e.target.value)}>
+            {DICE_SKINS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       {mode === "dnd" ? (
         <>
@@ -275,7 +303,7 @@ export default function DicePanel({ room }) {
         maxLength={40}
       />
 
-      {activeRoll && <DiceTray key={activeRoll.id} entry={activeRoll} />}
+      {activeRoll && <DiceTray key={activeRoll.id} entry={activeRoll} skin={room.theme === "scifi" ? skin : "pips"} />}
 
       <h3>Log</h3>
       <ul className="dice-log">
