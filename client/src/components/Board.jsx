@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import { socket } from "../socket.js";
 import TokenEditor from "./TokenEditor.jsx";
 
@@ -12,9 +12,16 @@ export default function Board({ room, playerId, isGM }) {
   const viewportRef = useRef(null);
   const [dragTokenId, setDragTokenId] = useState(null);
   const [dragPos, setDragPos] = useState(null);
+  // Once a drag ends, the server hasn't confirmed the new position yet, so
+  // falling straight back to room.tokens would flash the token back to its
+  // old spot for a frame. Each pending override holds the just-dropped
+  // position until the room state broadcast catches up to it.
+  const [pendingPositions, setPendingPositions] = useState({});
   const [editingTokenId, setEditingTokenId] = useState(null);
   const [addingToken, setAddingToken] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const pointersRef = useRef(new Map());
+  const pinchRef = useRef(null);
 
   const canControl = useCallback(
     (token) => isGM || token.ownerId === playerId,
@@ -84,9 +91,63 @@ export default function Board({ room, playerId, isGM }) {
   function onPointerUp(e) {
     if (!dragTokenId) return;
     const pos = posFromEvent(e);
-    socket.emit("token:move", { tokenId: dragTokenId, x: pos.x, y: pos.y });
+    const tokenId = dragTokenId;
+    socket.emit("token:move", { tokenId, x: pos.x, y: pos.y });
+    setPendingPositions((prev) => ({ ...prev, [tokenId]: pos }));
     setDragTokenId(null);
     setDragPos(null);
+  }
+
+  // Clears a pending override only once the room broadcast actually confirms
+  // that position - not on just any broadcast, since an unrelated update
+  // (e.g. a chat message) would otherwise clear it early and bring back the
+  // old-then-new flash this is meant to prevent.
+  useEffect(() => {
+    setPendingPositions((prev) => {
+      if (Object.keys(prev).length === 0) return prev;
+      let changed = false;
+      const next = { ...prev };
+      for (const [tokenId, target] of Object.entries(prev)) {
+        const token = room.tokens[tokenId];
+        if (!token || (Math.abs(token.x - target.x) < 0.05 && Math.abs(token.y - target.y) < 0.05)) {
+          delete next[tokenId];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [room.tokens]);
+
+  function distanceBetween(pts) {
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+
+  function onViewportPointerDown(e) {
+    if (e.pointerType !== "touch") return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointersRef.current.size === 2) {
+      pinchRef.current = { distance: distanceBetween([...pointersRef.current.values()]), zoom };
+    }
+  }
+
+  function onViewportPointerMove(e) {
+    if (!pointersRef.current.has(e.pointerId)) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointersRef.current.size === 2 && pinchRef.current) {
+      e.preventDefault();
+      const pts = [...pointersRef.current.values()];
+      const ratio = distanceBetween(pts) / pinchRef.current.distance;
+      const midX = (pts[0].x + pts[1].x) / 2;
+      const midY = (pts[0].y + pts[1].y) / 2;
+      zoomTo(pinchRef.current.zoom * ratio, midX, midY);
+    }
+  }
+
+  function onViewportPointerEnd(e) {
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size < 2) {
+      pinchRef.current = null;
+    }
   }
 
   function addToken(form) {
@@ -130,7 +191,15 @@ export default function Board({ room, playerId, isGM }) {
   return (
     <div className="board-wrap">
       <div className="board-viewport-wrap">
-        <div className="board-viewport" ref={viewportRef} onWheel={onWheel}>
+        <div
+          className="board-viewport"
+          ref={viewportRef}
+          onWheel={onWheel}
+          onPointerDown={onViewportPointerDown}
+          onPointerMove={onViewportPointerMove}
+          onPointerUp={onViewportPointerEnd}
+          onPointerCancel={onViewportPointerEnd}
+        >
           <div
             className="board-canvas"
             ref={containerRef}
@@ -154,7 +223,8 @@ export default function Board({ room, playerId, isGM }) {
 
             {tokens.map((token) => {
               const dragging = dragTokenId === token.id;
-              const pos = dragging ? dragPos : token;
+              const pending = pendingPositions[token.id];
+              const pos = dragging ? dragPos : pending || token;
               const mine = canControl(token);
               return (
                 <div

@@ -20,10 +20,13 @@ over-engineered. Ideate and extend from here.
 - **Shared board.** The GM sets a background map (paste an image URL, or
   upload an image file). An optional grid overlay can be toggled/resized.
   Anyone can independently zoom in/out on their own view (buttons, or
-  Ctrl/Cmd+scroll wheel, or trackpad pinch) and pan around by scrolling —
+  Ctrl/Cmd+scroll wheel, trackpad pinch, or a two-finger touch pinch on
+  tablet/phone) and pan around by scrolling or one-finger dragging on touch —
   purely a personal viewing preference, so one player zooming in doesn't
   change what anyone else sees. The grid and tokens scale together with
   zoom, so alignment with the GM's configured grid size is never thrown off.
+  On a tablet, pinch and drag are scoped to the board itself rather than
+  zooming the whole page.
 - **Tokens.** Anyone can add a token (their own); the GM can add tokens for
   anyone or unowned NPCs/monsters. Tokens are dragged directly on the board
   and everyone sees moves instantly. Double-click your own token (or any
