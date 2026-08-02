@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { socket } from "../socket.js";
 import { deleteGame } from "../games.js";
+import { THEMES } from "../themes.js";
 
 export default function GMPanel({ room }) {
   const [bgUrl, setBgUrl] = useState(room.board.backgroundUrl || "");
@@ -85,6 +86,19 @@ export default function GMPanel({ room }) {
 
   return (
     <div className="panel gm-panel">
+      <h3>Theme</h3>
+      <label>
+        Table look &amp; feel
+        <select value={room.theme || "default"} onChange={(e) => socket.emit("room:setTheme", { theme: e.target.value })}>
+          {THEMES.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="hint">{THEMES.find((t) => t.id === (room.theme || "default"))?.description}</p>
+
       <h3>Map background</h3>
       <label>
         Image URL

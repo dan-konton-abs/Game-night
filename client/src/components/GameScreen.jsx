@@ -81,7 +81,7 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
   }
 
   return (
-    <div className="game-screen">
+    <div className="game-screen" data-theme={room.theme || "default"}>
       {!connected && (
         <div className="connection-banner">⚠ Reconnecting… moves and messages won't reach anyone until this clears.</div>
       )}

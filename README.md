@@ -10,7 +10,11 @@ over-engineered. Ideate and extend from here.
 ## What's in the MVP
 
 - **Rooms.** One person creates a room (becomes the Game Master) and shares
-  the 5-character room code. Everyone else joins with that code.
+  the 5-character room code. Everyone else joins with that code. A theme is
+  picked at creation time (currently Classic/default or a Sci-Fi ship-cockpit
+  look) and applies for everyone in the room; the GM can change it later from
+  GM Tools. Adding another theme is just a CSS block plus a registry entry -
+  see `client/src/themes.js`.
 - **Shared board.** The GM sets a background map (paste an image URL, or
   upload an image file). An optional grid overlay can be toggled/resized.
   Anyone can independently zoom in/out on their own view (buttons, or

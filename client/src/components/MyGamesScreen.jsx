@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { socket, connectSocket } from "../socket.js";
 import { renameGame, deleteGame, leaveGame } from "../games.js";
+import { THEMES } from "../themes.js";
 
 function timeAgo(ts) {
   const diff = Math.max(0, Date.now() - ts);
@@ -14,6 +15,7 @@ function timeAgo(ts) {
 
 export default function MyGamesScreen({ user, games, onLogout, onRefreshGames }) {
   const [gameName, setGameName] = useState("");
+  const [theme, setTheme] = useState("default");
   const [joinCode, setJoinCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -27,7 +29,7 @@ export default function MyGamesScreen({ user, games, onLogout, onRefreshGames })
     setError(null);
     setBusy(true);
     ensureConnected();
-    socket.emit("room:create", { gameName: gameName.trim() }, (ack) => {
+    socket.emit("room:create", { gameName: gameName.trim(), theme }, (ack) => {
       setBusy(false);
       // On success, the server's room:state broadcast is what actually moves us
       // into the game (handled up in App.jsx) - nothing more to do here.
@@ -143,18 +145,30 @@ export default function MyGamesScreen({ user, games, onLogout, onRefreshGames })
         </ul>
 
         <h3>Start a new game</h3>
-        <form onSubmit={createGame} className="inline-row">
-          <input
-            value={gameName}
-            onChange={(e) => setGameName(e.target.value)}
-            placeholder="Game name, e.g. Aliens - Campaign 2"
-            maxLength={60}
-          />
-          <button type="submit" className="primary" disabled={busy}>
-            Create
-          </button>
+        <form onSubmit={createGame}>
+          <label>
+            Theme
+            <select value={theme} onChange={(e) => setTheme(e.target.value)}>
+              {THEMES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="inline-row">
+            <input
+              value={gameName}
+              onChange={(e) => setGameName(e.target.value)}
+              placeholder="Game name, e.g. Aliens - Campaign 2"
+              maxLength={60}
+            />
+            <button type="submit" className="primary" disabled={busy}>
+              Create
+            </button>
+          </div>
         </form>
-        <p className="hint">You'll be the Game Master for this one.</p>
+        <p className="hint">You'll be the Game Master for this one. Themes can be changed later from GM Tools.</p>
 
         <h3>Join with a code</h3>
         <form onSubmit={joinGame} className="inline-row">

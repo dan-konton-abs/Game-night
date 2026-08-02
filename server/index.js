@@ -188,6 +188,10 @@ if (fs.existsSync(CLIENT_DIST)) {
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
+// Keep in sync with client/src/themes.js - server is the source of truth for
+// what's actually allowed, since theme id is client-supplied input.
+const VALID_THEMES = ["default", "scifi"];
+
 const DEFAULT_ATTRIBUTES = [
   "Strength",
   "Agility",
@@ -292,6 +296,7 @@ io.on("connection", (socket) => {
       const room = store.createRoom();
       room.gmPlayerId = playerId;
       room.name = clampText(payload?.gameName, 60).trim() || null;
+      room.theme = VALID_THEMES.includes(payload?.theme) ? payload.theme : "default";
       room.players[playerId] = {
         id: playerId,
         name: cleanName,
@@ -487,6 +492,17 @@ io.on("connection", (socket) => {
     target.role = "gm";
     room.players[playerId].role = "player";
 
+    broadcast(room);
+  });
+
+  socket.on("room:setTheme", ({ theme }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    if (!isGM(room, playerId)) return publicError(socket, "Only the Game Master can change the theme.");
+    if (!VALID_THEMES.includes(theme)) return publicError(socket, "Unknown theme.");
+
+    room.theme = theme;
     broadcast(room);
   });
 

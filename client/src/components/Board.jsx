@@ -102,10 +102,10 @@ export default function Board({ room, playerId, isGM }) {
   }
 
   const board = room.board;
+  const gridLineColor = room.theme === "scifi" ? "rgba(51,255,122,0.35)" : "rgba(255,255,255,0.12)";
   const gridStyle = board.showGrid
     ? {
-        backgroundImage:
-          "linear-gradient(to right, rgba(255,255,255,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.12) 1px, transparent 1px)",
+        backgroundImage: `linear-gradient(to right, ${gridLineColor} 1px, transparent 1px), linear-gradient(to bottom, ${gridLineColor} 1px, transparent 1px)`,
         backgroundSize: `${board.gridSize * zoom}px ${board.gridSize * zoom}px`,
       }
     : {};

@@ -58,6 +58,7 @@ function blankRoom(code) {
     whispers: {},
     scenes: {},
     initiative: { active: false, round: 1, currentIndex: 0, entries: [] },
+    theme: "default",
   };
 }
 
@@ -95,6 +96,7 @@ function ensureLoaded(code) {
     if (!loaded.name) loaded.name = null;
     if (!loaded.updatedAt) loaded.updatedAt = loaded.createdAt || Date.now();
     if (!loaded.initiative) loaded.initiative = { active: false, round: 1, currentIndex: 0, entries: [] };
+    if (!loaded.theme) loaded.theme = "default";
     rooms.set(code, loaded);
     return loaded;
   }

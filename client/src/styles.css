@@ -966,3 +966,197 @@ fieldset {
     max-height: 45vh;
   }
 }
+
+/* ==========================================================================
+   Themes
+   Each theme scopes its overrides under .game-screen[data-theme="<id>"] -
+   redefining the shared CSS custom properties here re-colors nearly every
+   component for free, since the whole app is already built on top of them.
+   Add a new theme by adding a block here plus an entry in themes.js (and
+   VALID_THEMES in server/index.js, which is the actual source of truth for
+   what's allowed).
+   ========================================================================== */
+
+/* Sci-Fi - Ship Cockpit: glowing green terminal readouts, the map shown as
+   if on a bridge monitor. Alien/Nostromo-inspired. */
+.game-screen[data-theme="scifi"] {
+  --bg: #000603;
+  --panel: #030f08;
+  --panel-alt: #05170d;
+  --border: #145c37;
+  --text: #7dffb3;
+  --muted: #338258;
+  --accent: #33ff7a;
+  --accent-hover: #74ffab;
+  --danger: #ff4433;
+  --warning: #ffb020;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", "Consolas", "Liberation Mono", monospace;
+  position: relative;
+}
+
+/* A faint scanline sweep across the whole screen, CRT-style. Fixed to the
+   viewport (not .game-screen) so it reads as one continuous screen surface
+   rather than tiling per-panel; pointer-events:none keeps it from eating clicks. */
+.game-screen[data-theme="scifi"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(51, 255, 122, 0.05) 0px,
+    rgba(51, 255, 122, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: screen;
+}
+
+.game-screen[data-theme="scifi"] h1,
+.game-screen[data-theme="scifi"] h2,
+.game-screen[data-theme="scifi"] h3 {
+  text-shadow: 0 0 6px rgba(51, 255, 122, 0.65);
+  letter-spacing: 0.03em;
+}
+
+/* Backgrounds intentionally come from the redefined --panel-alt/--accent
+   variables above (the cascade the base stylesheet already runs on) rather
+   than being hardcoded here - a hardcoded background at this same selector
+   specificity would silently beat button.active/.primary's own background
+   rule (same specificity, and this block loads later), leaving their bright
+   background gone but their dark on-accent text color untouched, which
+   reads as text going invisible. */
+.game-screen[data-theme="scifi"] button {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.game-screen[data-theme="scifi"] button:not(.active):not(.primary) {
+  text-shadow: 0 0 4px rgba(51, 255, 122, 0.5);
+}
+
+.game-screen[data-theme="scifi"] button:hover {
+  box-shadow: 0 0 8px rgba(51, 255, 122, 0.5);
+}
+
+.game-screen[data-theme="scifi"] button.primary {
+  box-shadow: 0 0 10px rgba(51, 255, 122, 0.6);
+}
+
+.game-screen[data-theme="scifi"] button.danger {
+  text-shadow: 0 0 4px rgba(255, 68, 51, 0.6);
+}
+
+.game-screen[data-theme="scifi"] input:focus,
+.game-screen[data-theme="scifi"] select:focus,
+.game-screen[data-theme="scifi"] textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 6px rgba(51, 255, 122, 0.5);
+}
+
+.game-screen[data-theme="scifi"] .top-bar {
+  box-shadow: 0 1px 12px rgba(51, 255, 122, 0.15);
+}
+
+.game-screen[data-theme="scifi"] .tabs button.active {
+  text-shadow: 0 0 8px rgba(51, 255, 122, 0.8);
+}
+
+/* The map as a bridge monitor: a dark bezel frame around the viewport, a
+   corner-bracket HUD readout, and a stronger scanline pass directly over the
+   screen surface itself. */
+.game-screen[data-theme="scifi"] .board-viewport {
+  background-color: #000;
+  border: 10px solid #0a1410;
+  border-radius: 14px;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.9), inset 0 0 2px 2px rgba(51, 255, 122, 0.25),
+    0 0 24px rgba(51, 255, 122, 0.12);
+}
+
+.game-screen[data-theme="scifi"] .board-viewport-wrap::before,
+.game-screen[data-theme="scifi"] .board-viewport-wrap::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  z-index: 5;
+  border-color: rgba(51, 255, 122, 0.7);
+  border-style: solid;
+  border-width: 0;
+}
+
+.game-screen[data-theme="scifi"] .board-viewport-wrap::before {
+  top: 4px;
+  left: 4px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.game-screen[data-theme="scifi"] .board-viewport-wrap::after {
+  bottom: 4px;
+  right: 4px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+.game-screen[data-theme="scifi"] .board-canvas::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+      to bottom,
+      rgba(51, 255, 122, 0.08) 0px,
+      rgba(51, 255, 122, 0.08) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.game-screen[data-theme="scifi"] .token {
+  box-shadow: 0 0 10px 2px rgba(51, 255, 122, 0.55), 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.game-screen[data-theme="scifi"] .token.mine {
+  box-shadow: 0 0 14px 3px rgba(51, 255, 122, 0.85), 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.game-screen[data-theme="scifi"] .die-face {
+  background: #020c07;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  text-shadow: 0 0 6px rgba(51, 255, 122, 0.8);
+  box-shadow: 0 0 8px rgba(51, 255, 122, 0.35);
+}
+
+.game-screen[data-theme="scifi"] .board-viewport,
+.game-screen[data-theme="scifi"] .tab-content,
+.game-screen[data-theme="scifi"] .chat-messages {
+  scrollbar-color: var(--accent) #020c07;
+}
+
+.game-screen[data-theme="scifi"] .board-viewport::-webkit-scrollbar,
+.game-screen[data-theme="scifi"] .tab-content::-webkit-scrollbar,
+.game-screen[data-theme="scifi"] .chat-messages::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.game-screen[data-theme="scifi"] .board-viewport::-webkit-scrollbar-track,
+.game-screen[data-theme="scifi"] .tab-content::-webkit-scrollbar-track,
+.game-screen[data-theme="scifi"] .chat-messages::-webkit-scrollbar-track {
+  background: #020c07;
+}
+
+.game-screen[data-theme="scifi"] .board-viewport::-webkit-scrollbar-thumb,
+.game-screen[data-theme="scifi"] .tab-content::-webkit-scrollbar-thumb,
+.game-screen[data-theme="scifi"] .chat-messages::-webkit-scrollbar-thumb {
+  background: #145c37;
+  border-radius: 8px;
+}
