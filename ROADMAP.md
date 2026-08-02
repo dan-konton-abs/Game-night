@@ -59,6 +59,43 @@ to "remember" a whole campaign unprompted. If quality isn't good enough
 after that, a 13-14B model (e.g. Qwen2.5 14B) is the next step up, but
 worth trying the smaller option with good context retrieval first.
 
+### Voice chat
+
+An open in-app voice room per game, so the table doesn't need Discord (or
+anything else) open alongside it - not because Discord voice doesn't work
+fine today, but because one app is nicer than two, and GM-side mute
+control is something Discord doesn't give you as easily. Purely a nice-to-
+have, not solving a real pain point, so this sits behind the near-term
+features rather than ahead of them.
+
+Mesh WebRTC (every participant connects directly to every other
+participant) rather than an SFU media server - right call at table-sized
+groups (4-8 people), and means no new server infrastructure beyond a
+handful of new Socket.IO events for signaling (offer/answer/ICE candidate
+exchange between peers in the same room). The server never touches actual
+audio in this model, just small JSON handshake messages, reusing the same
+per-room socket plumbing already in place for everything else.
+
+- **Mute / push-to-talk**: fully client-side - each browser just flips its
+  own outgoing audio track's `enabled` flag. No server involvement.
+- **GM mute-all / mute-individual**: WebRTC only gives you control over
+  your *own* mic, not anyone else's, so this has to work as a request
+  relayed through the server ("GM asks the server to ask Player 3's
+  browser to mute itself") rather than a hard, unbypassable mute. That's
+  fine for a trusted friend group - same trust model the rest of the app
+  already runs on - but worth remembering it's a polite request, not
+  enforcement.
+- **The real risk**: WebRTC needs a STUN server to punch through NAT, which
+  free public ones handle for most home networks - but some networks
+  (symmetric NAT, some corporate/hotel/CGNAT setups) need a TURN relay
+  server as a fallback, or that one person's audio silently never connects.
+  Self-hosting a TURN server (coturn) on the same box is a solid, moderate-
+  effort mitigation, not an expensive one - but this class of bug is
+  invisible in local testing and only shows up against everyone's real home
+  networks. Whatever gets built here needs a real soak-test with the whole
+  group well before a session that actually matters, not a live debug on
+  game night itself.
+
 ## Business model direction
 
 Intent: release this publicly on GitHub, free to self-host, with a paid
