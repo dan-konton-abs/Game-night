@@ -11,7 +11,7 @@ const store = require("./roomStore");
 const userStore = require("./userStore");
 const { signToken, verifyToken } = require("./auth");
 const { sendPasswordResetEmail } = require("./mailer");
-const { rollFormula, rollAlienPool } = require("./dice");
+const { rollFormula, rollAlienPool, rollBladeRunner, pushBladeRunner } = require("./dice");
 
 const PORT = process.env.PORT || 4000;
 const PUBLIC_URL = process.env.PUBLIC_URL || `http://localhost:${PORT}`;
@@ -937,15 +937,69 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
-  socket.on("dice:roll", ({ formula, label, mode, baseDice, stressDice }) => {
-    const room = currentRoom();
-    if (!room) return;
-    const playerId = socket.data.playerId;
-    const player = room.players[playerId];
-    if (!player) return;
+  socket.on(
+    "dice:roll",
+    ({ formula, label, mode, baseDice, stressDice, attributeLevel, skillLevel, modifier, attributeType, replicant }) => {
+      const room = currentRoom();
+      if (!room) return;
+      const playerId = socket.data.playerId;
+      const player = room.players[playerId];
+      if (!player) return;
 
-    if (mode === "alien") {
-      const result = rollAlienPool(baseDice, stressDice);
+      if (mode === "alien") {
+        const result = rollAlienPool(baseDice, stressDice);
+        if (!result.ok) return publicError(socket, result.error);
+
+        room.diceLog.unshift({
+          id: store.newId(),
+          playerId,
+          name: player.name,
+          label: clampText(label, 40),
+          mode: "alien",
+          baseRolls: result.baseRolls,
+          stressRolls: result.stressRolls,
+          successes: result.successes,
+          panic: result.panic,
+          timestamp: Date.now(),
+        });
+        room.diceLog = room.diceLog.slice(0, 50);
+
+        broadcast(room);
+        return;
+      }
+
+      if (mode === "br") {
+        const levels = ["A", "B", "C", "D"];
+        const aLevel = levels.includes(attributeLevel) ? attributeLevel : "D";
+        const sLevel = levels.includes(skillLevel) ? skillLevel : "D";
+        const mod = ["advantage", "disadvantage"].includes(modifier) ? modifier : null;
+        const attrTypes = ["strength", "agility", "intelligence", "empathy"];
+        const attrType = attrTypes.includes(attributeType) ? attributeType : "strength";
+
+        const result = rollBladeRunner({ attributeLevel: aLevel, skillLevel: sLevel, modifier: mod });
+
+        room.diceLog.unshift({
+          id: store.newId(),
+          playerId,
+          name: player.name,
+          label: clampText(label, 40),
+          mode: "br",
+          attributeType: attrType,
+          replicant: !!replicant,
+          rolls: result.rolls,
+          successes: result.successes,
+          critical: result.critical,
+          pushCount: 0,
+          harm: null,
+          timestamp: Date.now(),
+        });
+        room.diceLog = room.diceLog.slice(0, 50);
+
+        broadcast(room);
+        return;
+      }
+
+      const result = rollFormula(clampText(formula, 30));
       if (!result.ok) return publicError(socket, result.error);
 
       room.diceLog.unshift({
@@ -953,34 +1007,39 @@ io.on("connection", (socket) => {
         playerId,
         name: player.name,
         label: clampText(label, 40),
-        mode: "alien",
-        baseRolls: result.baseRolls,
-        stressRolls: result.stressRolls,
-        successes: result.successes,
-        panic: result.panic,
+        formula: result.formula,
+        rolls: result.rolls,
+        modifier: result.modifier,
+        total: result.total,
         timestamp: Date.now(),
       });
       room.diceLog = room.diceLog.slice(0, 50);
 
       broadcast(room);
-      return;
     }
+  );
 
-    const result = rollFormula(clampText(formula, 30));
-    if (!result.ok) return publicError(socket, result.error);
+  // Pushing re-rolls whatever an existing Blade Runner roll hasn't already
+  // locked in as a 1, so it mutates that same diceLog entry in place rather
+  // than creating a new one - the client re-renders the same tray with the
+  // updated dice instead of a fresh roll animation.
+  socket.on("dice:pushBR", ({ entryId }) => {
+    const room = currentRoom();
+    if (!room) return;
+    const playerId = socket.data.playerId;
+    const entry = room.diceLog.find((e) => e.id === entryId);
+    if (!entry || entry.mode !== "br") return;
+    if (entry.playerId !== playerId) return publicError(socket, "You can only push your own roll.");
 
-    room.diceLog.unshift({
-      id: store.newId(),
-      playerId,
-      name: player.name,
-      label: clampText(label, 40),
-      formula: result.formula,
-      rolls: result.rolls,
-      modifier: result.modifier,
-      total: result.total,
-      timestamp: Date.now(),
-    });
-    room.diceLog = room.diceLog.slice(0, 50);
+    const maxPushes = entry.replicant ? 2 : 1;
+    if (entry.pushCount >= maxPushes) return publicError(socket, "No more pushes left for this roll.");
+
+    const result = pushBladeRunner(entry.rolls);
+    entry.rolls = result.rolls;
+    entry.successes = result.successes;
+    entry.critical = result.critical;
+    entry.harm = result.harm;
+    entry.pushCount += 1;
 
     broadcast(room);
   });

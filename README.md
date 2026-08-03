@@ -52,13 +52,22 @@ over-engineered. Ideate and extend from here.
   Double-click your own token (or any token, if you're the GM) to rename it,
   recolor it, set an image, resize it,
   or reassign its owner.
-- **Dice.** Two rolling modes, toggled per-player:
+- **Dice.** Three rolling modes, toggled per-player:
   - **D&D-style**: quick buttons for d4/d6/d8/d10/d12/d20/d100 (pick one,
     then a count stepper appears to roll several at once, e.g. 4d6), or
     type a formula like `2d6+3` for modifiers.
   - **Alien RPG**: a base dice + stress dice pool (both d6). Each 6 rolled
     is a success (stress dice are visually flagged in the tray so you can
     tell them apart); a 1 on any stress die is flagged as a Panic trigger.
+  - **Blade Runner**: an attribute die + skill die, each sized by level
+    (A-D → D12/D10/D8/D6) — pick both levels, an Advantage/Disadvantage/none
+    modifier, and whether the roller is a Replicant. 6+ on a die succeeds
+    (10+ counts as two, shown with a distinct gold highlight); rolling two or
+    more successes is a critical. A "Push the roll" button appears after a
+    settled roll (only to whoever rolled it) and re-rolls anything that
+    isn't already showing a 1 — humans get one push, Replicants get two —
+    reporting how many points of damage or stress (intelligence/empathy
+    rolls, or any Replicant roll, cost stress instead) each push inflicts.
   Every roll plays an animated tumble for everyone currently on the Dice
   tab — d6 shows real pip faces — landing on the real server-computed
   result, then joins the shared log. On the Sci-Fi theme, a per-player

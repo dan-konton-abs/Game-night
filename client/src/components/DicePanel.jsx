@@ -12,6 +12,14 @@ const DICE_SKINS = [
   { id: "holo", label: "Holographic" },
   { id: "hex", label: "Hex Panel" },
 ];
+const BR_LEVELS = ["A", "B", "C", "D"];
+const BR_LEVEL_DIE = { A: 12, B: 10, C: 8, D: 6 };
+const BR_ATTRIBUTES = [
+  { id: "strength", label: "Strength" },
+  { id: "agility", label: "Agility" },
+  { id: "intelligence", label: "Intelligence" },
+  { id: "empathy", label: "Empathy" },
+];
 
 function timeAgo(ts) {
   const diff = Math.max(0, Date.now() - ts);
@@ -35,6 +43,9 @@ function diceFromEntry(entry) {
       ...entry.stressRolls.map((v) => ({ sides: 6, value: v, variant: "stress" })),
     ];
   }
+  if (entry.mode === "br") {
+    return entry.rolls.map((r) => ({ sides: r.sides, value: r.value, variant: "br" }));
+  }
   const sides = sidesFromFormula(entry.formula);
   return entry.rolls.map((v) => ({ sides, value: v, variant: "normal" }));
 }
@@ -43,7 +54,11 @@ function DieFace({ sides, value, variant, spinning, skin = "pips" }) {
   // The LED skin is a digital readout, not a physical die - it always shows
   // the numeral, even for a d6 that would otherwise show pips.
   const pip = skin !== "led" && sides === 6 && value >= 1 && value <= 6;
-  const success = !spinning && variant !== "normal" && value === 6;
+  // Alien dice only ever succeed on an exact 6 (that's the only face a d6
+  // has); Blade Runner's Base Dice can be d8/d10/d12 too, where 6+ succeeds
+  // and a natural 10+ counts double - hence the >= here instead of ===.
+  const success = !spinning && variant !== "normal" && value >= 6;
+  const doubleSuccess = !spinning && variant === "br" && value >= 10;
   const classes = [
     "die-face",
     `die-skin-${skin}`,
@@ -51,6 +66,7 @@ function DieFace({ sides, value, variant, spinning, skin = "pips" }) {
     value >= 100 && "die-face-small",
     variant === "stress" && "die-stress",
     success && "die-success",
+    doubleSuccess && "die-double-success",
     spinning ? "spinning" : "settled",
   ]
     .filter(Boolean)
@@ -58,11 +74,19 @@ function DieFace({ sides, value, variant, spinning, skin = "pips" }) {
   return <div className={classes}>{pip ? PIP_FACES[value] : value}</div>;
 }
 
-function DiceTray({ entry, skin }) {
+function brNotation(entry) {
+  return entry.rolls.map((r) => `D${r.sides}`).join(" + ");
+}
+
+function DiceTray({ entry, skin, playerId, onPush }) {
   const dice = useMemo(() => diceFromEntry(entry), [entry]);
   const stagger = Math.max(30, Math.min(130, 900 / Math.max(dice.length, 1)));
   const [values, setValues] = useState(dice.map((d) => 1 + Math.floor(Math.random() * d.sides)));
   const [spinning, setSpinning] = useState(true);
+  // Tracks the pushCount we've already animated up to, so a push (which
+  // mutates this same entry in place rather than creating a new one) can
+  // snap straight to the new results instead of replaying the full tumble.
+  const pushCountRef = useRef(entry.pushCount ?? 0);
 
   useEffect(() => {
     const intervals = dice.map((d, i) =>
@@ -96,6 +120,16 @@ function DiceTray({ entry, skin }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry.id]);
 
+  useEffect(() => {
+    if ((entry.pushCount ?? 0) === pushCountRef.current) return;
+    pushCountRef.current = entry.pushCount;
+    setValues(dice.map((d) => d.value));
+  }, [entry.pushCount, dice]);
+
+  const pushesAllowed = entry.replicant ? 2 : 1;
+  const canPush = entry.mode === "br" && entry.playerId === playerId && (entry.pushCount ?? 0) < pushesAllowed;
+  const harmLabel = entry.replicant || ["intelligence", "empathy"].includes(entry.attributeType) ? "stress" : "damage";
+
   return (
     <div className="dice-tray">
       <div className="dice-tray-label">
@@ -104,6 +138,8 @@ function DiceTray({ entry, skin }) {
           <code>
             {entry.baseRolls.length}d6{entry.stressRolls.length ? ` + ${entry.stressRolls.length} stress` : ""}
           </code>
+        ) : entry.mode === "br" ? (
+          <code>{brNotation(entry)}</code>
         ) : (
           <code>{entry.formula}</code>
         )}
@@ -119,6 +155,21 @@ function DiceTray({ entry, skin }) {
             <strong>{entry.successes}</strong> success{entry.successes === 1 ? "" : "es"}
             {entry.panic && <div className="dice-panic-warning">⚠ Panic! Roll on the Panic Table.</div>}
           </div>
+        ) : entry.mode === "br" ? (
+          <div className="dice-tray-total">
+            <strong>{entry.successes}</strong> success{entry.successes === 1 ? "" : "es"}
+            {entry.critical && <span className="dice-critical-badge"> · Critical!</span>}
+            {entry.harm > 0 && (
+              <div className="dice-panic-warning">
+                ⚠ {entry.harm} point{entry.harm === 1 ? "" : "s"} of {harmLabel} from pushing
+              </div>
+            )}
+            {canPush && (
+              <button type="button" className="danger small dice-push-button" onClick={onPush}>
+                Push the roll{entry.replicant ? ` (${pushesAllowed - entry.pushCount} left)` : ""}
+              </button>
+            )}
+          </div>
         ) : (
           <div className="dice-tray-total">
             [{entry.rolls.join(", ")}]
@@ -129,7 +180,7 @@ function DiceTray({ entry, skin }) {
   );
 }
 
-export default function DicePanel({ room }) {
+export default function DicePanel({ room, playerId }) {
   const [mode, setMode] = useState(() => localStorage.getItem(MODE_KEY) || "dnd");
   const [skin, setSkin] = useState(() => localStorage.getItem(SKIN_KEY) || "pips");
   const [formula, setFormula] = useState("1d20");
@@ -138,9 +189,19 @@ export default function DicePanel({ room }) {
   const [count, setCount] = useState(1);
   const [baseDice, setBaseDice] = useState(1);
   const [stressDice, setStressDice] = useState(0);
-  const [activeRoll, setActiveRoll] = useState(null);
+  const [attributeType, setAttributeType] = useState("strength");
+  const [attributeLevel, setAttributeLevel] = useState("C");
+  const [skillLevel, setSkillLevel] = useState("C");
+  const [brModifier, setBrModifier] = useState("none");
+  const [replicant, setReplicant] = useState(false);
+  // Only tracks WHICH log entry is active - the entry itself is always looked
+  // up fresh from room.diceLog, so a push (which mutates the same entry
+  // rather than creating a new one) updates the tray in place instead of
+  // being stuck showing a stale pre-push snapshot.
+  const [activeRollId, setActiveRollId] = useState(null);
   // Captured once at mount so resuming a game doesn't replay old history as an animation.
   const lastSeenIdRef = useRef(room.diceLog[0]?.id ?? null);
+  const activeRoll = activeRollId ? room.diceLog.find((e) => e.id === activeRollId) ?? null : null;
 
   useEffect(() => {
     localStorage.setItem(MODE_KEY, mode);
@@ -154,7 +215,7 @@ export default function DicePanel({ room }) {
     const newest = room.diceLog[0];
     if (newest && newest.id !== lastSeenIdRef.current) {
       lastSeenIdRef.current = newest.id;
-      setActiveRoll(newest);
+      setActiveRollId(newest.id);
     }
   }, [room.diceLog]);
 
@@ -175,6 +236,23 @@ export default function DicePanel({ room }) {
     socket.emit("dice:roll", { mode: "alien", baseDice, stressDice, label });
   }
 
+  function rollBladeRunner() {
+    socket.emit("dice:roll", {
+      mode: "br",
+      attributeType,
+      attributeLevel,
+      skillLevel,
+      modifier: brModifier === "none" ? null : brModifier,
+      replicant,
+      label,
+    });
+  }
+
+  function pushBladeRunnerRoll() {
+    if (!activeRoll) return;
+    socket.emit("dice:pushBR", { entryId: activeRoll.id });
+  }
+
   return (
     <div className="panel dice-panel">
       <h3>Roll dice</h3>
@@ -184,6 +262,9 @@ export default function DicePanel({ room }) {
         </button>
         <button type="button" className={mode === "alien" ? "active" : ""} onClick={() => setMode("alien")}>
           Alien RPG
+        </button>
+        <button type="button" className={mode === "br" ? "active" : ""} onClick={() => setMode("br")}>
+          Blade Runner
         </button>
       </div>
 
@@ -247,7 +328,7 @@ export default function DicePanel({ room }) {
             </button>
           </form>
         </>
-      ) : (
+      ) : mode === "alien" ? (
         <>
           <div className="alien-pool-row">
             <label>
@@ -293,6 +374,72 @@ export default function DicePanel({ room }) {
           </button>
           <p className="hint">Each 6 is a success. A 1 on any stress die risks Panic.</p>
         </>
+      ) : (
+        <>
+          <div className="br-roll-row">
+            <label>
+              Attribute
+              <select value={attributeType} onChange={(e) => setAttributeType(e.target.value)}>
+                {BR_ATTRIBUTES.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Attribute level
+              <select value={attributeLevel} onChange={(e) => setAttributeLevel(e.target.value)}>
+                {BR_LEVELS.map((l) => (
+                  <option key={l} value={l}>
+                    {l} (D{BR_LEVEL_DIE[l]})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Skill level
+              <select value={skillLevel} onChange={(e) => setSkillLevel(e.target.value)}>
+                {BR_LEVELS.map((l) => (
+                  <option key={l} value={l}>
+                    {l} (D{BR_LEVEL_DIE[l]})
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="mode-toggle br-modifier-toggle">
+            <button type="button" className={brModifier === "none" ? "active" : ""} onClick={() => setBrModifier("none")}>
+              None
+            </button>
+            <button
+              type="button"
+              className={brModifier === "advantage" ? "active" : ""}
+              onClick={() => setBrModifier("advantage")}
+            >
+              Advantage
+            </button>
+            <button
+              type="button"
+              className={brModifier === "disadvantage" ? "active" : ""}
+              onClick={() => setBrModifier("disadvantage")}
+            >
+              Disadvantage
+            </button>
+          </div>
+
+          <label className="inline-row">
+            <input type="checkbox" checked={replicant} onChange={(e) => setReplicant(e.target.checked)} />
+            Replicant (can push twice; pushing always costs stress)
+          </label>
+
+          <button type="button" className="primary" onClick={rollBladeRunner}>
+            Roll D{BR_LEVEL_DIE[attributeLevel]} + D{BR_LEVEL_DIE[skillLevel]}
+            {brModifier === "advantage" ? ` + D${Math.min(BR_LEVEL_DIE[attributeLevel], BR_LEVEL_DIE[skillLevel])}` : ""}
+          </button>
+          <p className="hint">6+ on a die is a success (10+ counts as two). Pushing re-rolls anything that isn't already a 1.</p>
+        </>
       )}
 
       <input
@@ -303,7 +450,15 @@ export default function DicePanel({ room }) {
         maxLength={40}
       />
 
-      {activeRoll && <DiceTray key={activeRoll.id} entry={activeRoll} skin={room.theme === "scifi" ? skin : "pips"} />}
+      {activeRoll && (
+        <DiceTray
+          key={activeRoll.id}
+          entry={activeRoll}
+          skin={room.theme === "scifi" ? skin : "pips"}
+          playerId={playerId}
+          onPush={pushBladeRunnerRoll}
+        />
+      )}
 
       <h3>Log</h3>
       <ul className="dice-log">
@@ -316,6 +471,8 @@ export default function DicePanel({ room }) {
                 <code>
                   {entry.baseRolls.length}d6{entry.stressRolls.length ? ` + ${entry.stressRolls.length} stress` : ""}
                 </code>
+              ) : entry.mode === "br" ? (
+                <code>{brNotation(entry)}</code>
               ) : (
                 <code>{entry.formula}</code>
               )}
@@ -326,6 +483,13 @@ export default function DicePanel({ room }) {
                   [{[...entry.baseRolls, ...entry.stressRolls].join(", ")}] = <strong>{entry.successes}</strong>{" "}
                   success{entry.successes === 1 ? "" : "es"}
                   {entry.panic ? " · ⚠ Panic!" : ""}
+                </>
+              ) : entry.mode === "br" ? (
+                <>
+                  [{entry.rolls.map((r) => r.value).join(", ")}] = <strong>{entry.successes}</strong> success
+                  {entry.successes === 1 ? "" : "es"}
+                  {entry.critical ? " · Critical!" : ""}
+                  {entry.pushCount > 0 ? ` · pushed ${entry.pushCount}x` : ""}
                 </>
               ) : (
                 <>

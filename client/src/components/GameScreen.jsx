@@ -178,7 +178,7 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
                 unreadWhispers={unreadWhispers}
               />
             )}
-            {tab === "dice" && <DicePanel room={room} />}
+            {tab === "dice" && <DicePanel room={room} playerId={playerId} />}
             {tab === "initiative" && <InitiativePanel room={room} playerId={playerId} isGM={isGM} />}
             {tab === "character" && (
               <CharacterSheet

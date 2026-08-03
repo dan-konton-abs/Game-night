@@ -769,10 +769,38 @@ label {
   box-shadow: 0 0 0 2px var(--danger), 0 0 12px 2px rgba(226, 87, 76, 0.6);
 }
 
+.die-face.die-double-success {
+  box-shadow: 0 0 0 2px var(--warning), 0 0 14px 3px rgba(232, 168, 60, 0.7);
+}
+
 .dice-panic-warning {
   margin-top: 6px;
   color: var(--danger);
   font-weight: 600;
+}
+
+.dice-critical-badge {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.dice-push-button {
+  display: block;
+  margin-top: 10px;
+}
+
+.br-roll-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.br-roll-row label {
+  flex: 1;
+}
+
+.br-modifier-toggle {
+  margin-bottom: 12px;
 }
 
 .quick-dice {
