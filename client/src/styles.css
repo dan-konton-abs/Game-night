@@ -442,6 +442,52 @@ label {
 .board-toolbar {
   position: relative;
   display: flex;
+  gap: 8px;
+}
+
+.board-toolbar .fog-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.fog-controls {
+  bottom: 100%;
+  margin-bottom: 8px;
+  width: 260px;
+}
+
+.fog-brush-modes {
+  display: flex;
+  gap: 6px;
+}
+
+.fog-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.fog-cell {
+  position: absolute;
+}
+
+.fog-player .fog-cell {
+  background: #0b0c10;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.03) 0,
+    rgba(255, 255, 255, 0.03) 2px,
+    transparent 2px,
+    transparent 8px
+  );
+}
+
+.fog-gm .fog-cell {
+  background: rgba(20, 22, 28, 0.55);
+}
+
+.fog-painting {
+  cursor: crosshair;
 }
 
 /* "Your Turn" reminder - map top-right corner, only shown to whoever's turn

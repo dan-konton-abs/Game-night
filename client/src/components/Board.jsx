@@ -6,6 +6,7 @@ const PALETTE = ["#5b8def", "#e2574c", "#4caf7d", "#e8a83c", "#9b6bd9", "#41b3c2
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.25;
+const FOG_BRUSH_RADIUS = { small: 0, medium: 1, large: 2 };
 
 export default function Board({ room, playerId, isGM }) {
   const containerRef = useRef(null);
@@ -22,6 +23,14 @@ export default function Board({ room, playerId, isGM }) {
   const [zoom, setZoom] = useState(1);
   const pointersRef = useRef(new Map());
   const pinchRef = useRef(null);
+  const [fogOpen, setFogOpen] = useState(false);
+  const [fogBrushMode, setFogBrushMode] = useState("reveal");
+  const [fogBrushSize, setFogBrushSize] = useState("medium");
+  // Optimistic per-cell overrides for whatever's being painted right now, keyed
+  // by cell index - cleared once the server broadcast confirms that exact
+  // value, same pending-until-confirmed pattern used for token drags above.
+  const [fogOverride, setFogOverride] = useState({});
+  const fogStrokeRef = useRef(null);
 
   const canControl = useCallback(
     (token) => isGM || token.ownerId === playerId,
@@ -150,6 +159,120 @@ export default function Board({ room, playerId, isGM }) {
     }
   }
 
+  const fog = room.board.fog;
+  const paintingFog = isGM && fogOpen && fog.enabled;
+
+  // Clears a fog cell's optimistic override only once the room broadcast
+  // actually confirms that exact value - not just on any broadcast.
+  useEffect(() => {
+    setFogOverride((prev) => {
+      if (Object.keys(prev).length === 0) return prev;
+      let changed = false;
+      const next = { ...prev };
+      for (const [key, hidden] of Object.entries(prev)) {
+        if (fog.cells[key] === hidden) {
+          delete next[key];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.board.fog]);
+
+  function isCellHidden(i) {
+    return fogOverride[i] !== undefined ? fogOverride[i] : !!fog.cells[i];
+  }
+
+  function cellFromEvent(e) {
+    const rect = containerRef.current.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+    const col = Math.min(fog.cols - 1, Math.max(0, Math.floor((xPct / 100) * fog.cols)));
+    const row = Math.min(fog.rows - 1, Math.max(0, Math.floor((yPct / 100) * fog.rows)));
+    return { col, row };
+  }
+
+  function cellsInBrush(col, row) {
+    const radius = FOG_BRUSH_RADIUS[fogBrushSize] ?? 1;
+    const result = [];
+    for (let dr = -radius; dr <= radius; dr++) {
+      for (let dc = -radius; dc <= radius; dc++) {
+        const c = col + dc;
+        const r = row + dr;
+        if (c >= 0 && c < fog.cols && r >= 0 && r < fog.rows) result.push(r * fog.cols + c);
+      }
+    }
+    return result;
+  }
+
+  // Walks every cell between two brush positions (Bresenham's line algorithm)
+  // so a fast drag doesn't skip cells between two pointermove samples.
+  function lineCells(c0, r0, c1, r1) {
+    const points = [];
+    const dx = Math.abs(c1 - c0);
+    const dy = Math.abs(r1 - r0);
+    const sx = c0 < c1 ? 1 : -1;
+    const sy = r0 < r1 ? 1 : -1;
+    let err = dx - dy;
+    let c = c0;
+    let r = r0;
+    for (;;) {
+      points.push([c, r]);
+      if (c === c1 && r === r1) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        c += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        r += sy;
+      }
+    }
+    return points;
+  }
+
+  function applyFogOverride(indices, hidden) {
+    setFogOverride((prev) => {
+      const next = { ...prev };
+      for (const idx of indices) next[idx] = hidden;
+      return next;
+    });
+  }
+
+  function onFogPointerDown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.target.setPointerCapture(e.pointerId);
+    const { col, row } = cellFromEvent(e);
+    const hidden = fogBrushMode === "hide";
+    const touched = new Set(cellsInBrush(col, row));
+    fogStrokeRef.current = { hidden, touched, lastCell: { col, row } };
+    applyFogOverride(touched, hidden);
+  }
+
+  function onFogPointerMove(e) {
+    const stroke = fogStrokeRef.current;
+    if (!stroke) return;
+    const { col, row } = cellFromEvent(e);
+    if (stroke.lastCell.col === col && stroke.lastCell.row === row) return;
+    const newlyTouched = new Set();
+    for (const [c, r] of lineCells(stroke.lastCell.col, stroke.lastCell.row, col, row)) {
+      for (const idx of cellsInBrush(c, r)) newlyTouched.add(idx);
+    }
+    stroke.lastCell = { col, row };
+    for (const idx of newlyTouched) stroke.touched.add(idx);
+    applyFogOverride(newlyTouched, stroke.hidden);
+  }
+
+  function onFogPointerUp() {
+    const stroke = fogStrokeRef.current;
+    fogStrokeRef.current = null;
+    if (!stroke || stroke.touched.size === 0) return;
+    socket.emit("fog:paint", { cells: Array.from(stroke.touched), hidden: stroke.hidden });
+  }
+
   function addToken(form) {
     socket.emit("token:add", {
       x: 50,
@@ -251,6 +374,45 @@ export default function Board({ room, playerId, isGM }) {
                 onClose={() => setEditingTokenId(null)}
               />
             )}
+
+            {fog.enabled && (
+              <div
+                className={`fog-layer ${isGM ? "fog-gm" : "fog-player"} ${paintingFog ? "fog-painting" : ""}`}
+                style={
+                  paintingFog
+                    ? {
+                        pointerEvents: "auto",
+                        backgroundImage:
+                          "linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px)",
+                        backgroundSize: `${100 / fog.cols}% ${100 / fog.rows}%`,
+                      }
+                    : undefined
+                }
+                onPointerDown={paintingFog ? onFogPointerDown : undefined}
+                onPointerMove={paintingFog ? onFogPointerMove : undefined}
+                onPointerUp={paintingFog ? onFogPointerUp : undefined}
+                onPointerCancel={paintingFog ? onFogPointerUp : undefined}
+              >
+                {Array.from({ length: fog.cols * fog.rows }, (_, i) => i)
+                  .filter((i) => isCellHidden(i))
+                  .map((i) => {
+                    const col = i % fog.cols;
+                    const row = Math.floor(i / fog.cols);
+                    return (
+                      <div
+                        key={i}
+                        className="fog-cell"
+                        style={{
+                          left: `${(col / fog.cols) * 100}%`,
+                          top: `${(row / fog.rows) * 100}%`,
+                          width: `${100 / fog.cols}%`,
+                          height: `${100 / fog.rows}%`,
+                        }}
+                      />
+                    );
+                  })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -284,6 +446,83 @@ export default function Board({ room, playerId, isGM }) {
           + Add Token
         </button>
         {addingToken && <AddTokenForm onSubmit={addToken} onCancel={() => setAddingToken(false)} />}
+        {isGM && (
+          <button className={`small ${fog.enabled ? "fog-active" : ""}`} onClick={() => setFogOpen((v) => !v)}>
+            🌫 Fog of War
+          </button>
+        )}
+        {isGM && fogOpen && (
+          <FogControls
+            fog={fog}
+            brushMode={fogBrushMode}
+            onBrushMode={setFogBrushMode}
+            brushSize={fogBrushSize}
+            onBrushSize={setFogBrushSize}
+            onClose={() => setFogOpen(false)}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FogControls({ fog, brushMode, onBrushMode, brushSize, onBrushSize, onClose }) {
+  function toggleEnabled() {
+    socket.emit("fog:toggle", { enabled: !fog.enabled });
+  }
+
+  function revealAll() {
+    if (!confirm("Reveal the entire map to players?")) return;
+    socket.emit("fog:setAll", { hidden: false });
+  }
+
+  function hideAll() {
+    if (!confirm("Hide the entire map from players?")) return;
+    socket.emit("fog:setAll", { hidden: true });
+  }
+
+  return (
+    <div className="popover fog-controls" onPointerDown={(e) => e.stopPropagation()}>
+      <label className="inline-row">
+        <input type="checkbox" checked={fog.enabled} onChange={toggleEnabled} />
+        Fog of War enabled
+      </label>
+      {fog.enabled && (
+        <>
+          <p className="hint">Drag on the map to reveal or hide areas from players. Your own view always shows the full map, dimmed where players can't see.</p>
+          <label>
+            Brush
+            <div className="fog-brush-modes">
+              <button type="button" className={brushMode === "reveal" ? "primary small" : "small"} onClick={() => onBrushMode("reveal")}>
+                Reveal
+              </button>
+              <button type="button" className={brushMode === "hide" ? "primary small" : "small"} onClick={() => onBrushMode("hide")}>
+                Hide
+              </button>
+            </div>
+          </label>
+          <label>
+            Brush size
+            <select value={brushSize} onChange={(e) => onBrushSize(e.target.value)}>
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </label>
+          <div className="popover-actions">
+            <button type="button" onClick={revealAll}>
+              Reveal All
+            </button>
+            <button type="button" onClick={hideAll}>
+              Hide All
+            </button>
+          </div>
+        </>
+      )}
+      <div className="popover-actions">
+        <button type="button" onClick={onClose}>
+          Close
+        </button>
       </div>
     </div>
   );

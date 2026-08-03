@@ -27,6 +27,16 @@ over-engineered. Ideate and extend from here.
   zoom, so alignment with the GM's configured grid size is never thrown off.
   On a tablet, pinch and drag are scoped to the board itself rather than
   zooming the whole page.
+- **Fog of war.** The GM can toggle a fog layer over the map from the
+  "🌫 Fog of War" control above the board, then drag to paint areas hidden or
+  revealed (pick a brush size, or Reveal All/Hide All to clear the whole
+  map at once). Turning it on for the first time hides the whole map by
+  default - the usual "reveal as the party explores" flow - and toggling it
+  off and back on later preserves whatever's already been painted instead of
+  resetting it. Hidden areas are fully opaque for players (covering tokens
+  underneath too) but only dimmed for the GM, who always sees the full board
+  while painting. Fog is saved as part of each Scene, so switching locations
+  brings back that location's own fog state.
 - **Tokens.** Anyone can add a token (their own); the GM can add tokens for
   anyone or unowned NPCs/monsters. A token's image can be set by pasting a
   URL or uploading a file directly, same as the map background — a preview
@@ -125,8 +135,8 @@ over-engineered. Ideate and extend from here.
   illusion) rather than leaving you looking at a board that's quietly
   stopped syncing. A banner shows while reconnecting so it's never silent.
 
-Not in the MVP (good candidates for v2+): fog of war, measuring/rulers,
-layers, per-token vision, richer character sheet templates per system. See
+Not in the MVP (good candidates for v2+): measuring/rulers, map layers,
+per-token vision, richer character sheet templates per system. See
 [ROADMAP.md](ROADMAP.md) for these plus longer-term ideas (a VR/Quest 3
 client, a local-LLM GM assistant) and the planned self-host/hosted split.
 

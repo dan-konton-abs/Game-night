@@ -382,6 +382,52 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
+  // Fog of war: a fixed-resolution grid of cells (see roomStore's FOG_COLS/
+  // FOG_ROWS) that the GM paints hidden/revealed. Enabling it for the first
+  // time defaults to fully hidden - the usual "reveal as the party explores"
+  // workflow - but re-toggling it off and back on afterwards preserves
+  // whatever the GM already painted instead of wiping it every time.
+  socket.on("fog:toggle", ({ enabled }) => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can control fog of war.");
+
+    const fog = room.board.fog;
+    fog.enabled = !!enabled;
+    if (fog.enabled && !fog.initialized) {
+      fog.cells = fog.cells.map(() => true);
+      fog.initialized = true;
+    }
+    broadcast(room);
+  });
+
+  socket.on("fog:paint", ({ cells, hidden }) => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can control fog of war.");
+    if (!Array.isArray(cells)) return;
+
+    const fog = room.board.fog;
+    const value = !!hidden;
+    for (const raw of cells) {
+      const i = Number(raw);
+      if (Number.isInteger(i) && i >= 0 && i < fog.cells.length) fog.cells[i] = value;
+    }
+    fog.initialized = true;
+    broadcast(room);
+  });
+
+  socket.on("fog:setAll", ({ hidden }) => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can control fog of war.");
+
+    const fog = room.board.fog;
+    fog.cells = fog.cells.map(() => !!hidden);
+    fog.initialized = true;
+    broadcast(room);
+  });
+
   socket.on("token:add", (token) => {
     const room = currentRoom();
     if (!room) return;
@@ -541,6 +587,7 @@ io.on("connection", (socket) => {
 
     room.board = JSON.parse(JSON.stringify(scene.board));
     room.tokens = JSON.parse(JSON.stringify(scene.tokens));
+    store.ensureFog(room.board);
     broadcast(room);
   });
 

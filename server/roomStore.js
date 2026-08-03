@@ -8,6 +8,25 @@ if (!fs.existsSync(ROOMS_DIR)) fs.mkdirSync(ROOMS_DIR, { recursive: true });
 
 const roomCodeId = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 5);
 
+// Fog is a fixed-resolution grid of cells overlaid on the board, independent
+// of the visual grid (which is just a movement aid and can be off or a
+// different size). 32x20 is fine-enough brush granularity without pushing
+// the DOM node count for a fully-hidden map into the thousands.
+const FOG_COLS = 32;
+const FOG_ROWS = 20;
+
+function blankFog() {
+  return { enabled: false, initialized: false, cols: FOG_COLS, rows: FOG_ROWS, cells: new Array(FOG_COLS * FOG_ROWS).fill(false) };
+}
+
+/** Backfills a missing/malformed fog block - e.g. a room or scene saved before this feature existed. */
+function ensureFog(board) {
+  if (!board.fog || !Array.isArray(board.fog.cells) || board.fog.cells.length !== board.fog.cols * board.fog.rows) {
+    board.fog = blankFog();
+  }
+  return board;
+}
+
 /** @type {Map<string, object>} in-memory authoritative room state, keyed by room code */
 const rooms = new Map();
 const saveTimers = new Map();
@@ -49,6 +68,7 @@ function blankRoom(code) {
       backgroundUrl: null,
       gridSize: 50,
       showGrid: true,
+      fog: blankFog(),
     },
     tokens: {},
     characters: {},
@@ -100,6 +120,8 @@ function ensureLoaded(code) {
     if (loaded.initiative.notifyTurns === undefined) loaded.initiative.notifyTurns = true;
     if (!loaded.theme) loaded.theme = "default";
     if (!loaded.locker) loaded.locker = { tokens: {}, maps: {}, monsters: {} };
+    ensureFog(loaded.board);
+    for (const scene of Object.values(loaded.scenes)) ensureFog(scene.board);
     rooms.set(code, loaded);
     return loaded;
   }
@@ -161,5 +183,6 @@ module.exports = {
   deleteRoom,
   whisperKey,
   listRoomsForUser,
+  ensureFog,
   newId: nanoid,
 };

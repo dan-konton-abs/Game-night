@@ -9,7 +9,6 @@ by how well-scoped they are.
 Good candidates for the next few PRs, same shape as everything shipped so
 far:
 
-- Fog of war
 - Measuring/rulers
 - Map layers
 - Per-token vision
