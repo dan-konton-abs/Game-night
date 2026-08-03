@@ -1,0 +1,6 @@
+{
+  "branch": "claude/rules-keeper-ai",
+  "status": "ready_to_test",
+  "notes": "Adds an AI 'Keeper of the Rules' assistant. GM Tools has a new 'Rules Keeper' section to upload/replace/remove a rulebook PDF (via the existing /api/upload endpoint, now also accepting application/pdf, 30MB limit). Everyone gets a '📖 Instructions' button in the top bar opening a chat modal to ask rules questions, answered in-character (grumpy archivist) by Gemini grounded in the uploaded PDF. Needs GEMINI_API_KEY set in the environment to actually get answers - without it, asking fails gracefully with a message saying so (that path is expected/untested here, no key in this sandbox). Conversations are private per-player, never shown to other players (same treatment as whisper chat) - verified via raw WebSocket frame inspection that room:state broadcasts never include the conversations field. To test: open GM Tools, upload any PDF as the rulebook, confirm it shows as loaded for both GM and a second player, open Instructions as each, ask a question and confirm a graceful error appears if GEMINI_API_KEY isn't set (or a real grounded answer if it is), and confirm two different players' conversations don't leak into each other.",
+  "timestamp": "2026-08-03T21:28:51Z"
+}
