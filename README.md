@@ -28,9 +28,13 @@ over-engineered. Ideate and extend from here.
   On a tablet, pinch and drag are scoped to the board itself rather than
   zooming the whole page.
 - **Tokens.** Anyone can add a token (their own); the GM can add tokens for
-  anyone or unowned NPCs/monsters. Tokens are dragged directly on the board
-  and everyone sees moves instantly. Double-click your own token (or any
-  token, if you're the GM) to rename it, recolor it, set an image, resize it,
+  anyone or unowned NPCs/monsters. A token's image can be set by pasting a
+  URL or uploading a file directly, same as the map background — a preview
+  shows before you add it, and a link that fails to load falls back to the
+  token's color and initials instead of rendering as a blank circle. Tokens
+  are dragged directly on the board and everyone sees moves instantly.
+  Double-click your own token (or any token, if you're the GM) to rename it,
+  recolor it, set an image, resize it,
   or reassign its owner.
 - **Dice.** Two rolling modes, toggled per-player:
   - **D&D-style**: quick buttons for d4/d6/d8/d10/d12/d20/d100 (pick one,

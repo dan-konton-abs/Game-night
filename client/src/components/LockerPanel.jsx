@@ -28,6 +28,25 @@ export default function LockerPanel({ room }) {
   const [tokenColor, setTokenColor] = useState(PALETTE[0]);
   const [tokenImageUrl, setTokenImageUrl] = useState("");
   const [tokenSize, setTokenSize] = useState(48);
+  const [tokenUploading, setTokenUploading] = useState(false);
+
+  async function onTokenFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setTokenUploading(true);
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (data.url) setTokenImageUrl(data.url);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setTokenUploading(false);
+      e.target.value = "";
+    }
+  }
 
   function saveTokenPreset(e) {
     e.preventDefault();
@@ -106,6 +125,25 @@ export default function LockerPanel({ room }) {
   const [monsterImageUrl, setMonsterImageUrl] = useState("");
   const [monsterSize, setMonsterSize] = useState(48);
   const [monsterNotes, setMonsterNotes] = useState("");
+  const [monsterUploading, setMonsterUploading] = useState(false);
+
+  async function onMonsterFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMonsterUploading(true);
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (data.url) setMonsterImageUrl(data.url);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setMonsterUploading(false);
+      e.target.value = "";
+    }
+  }
 
   function saveMonsterPreset(e) {
     e.preventDefault();
@@ -179,6 +217,11 @@ export default function LockerPanel({ room }) {
           Image URL (optional)
           <input value={tokenImageUrl} onChange={(e) => setTokenImageUrl(e.target.value)} placeholder="https://…" />
         </label>
+        <label className="file-label">
+          Or upload an image
+          <input type="file" accept="image/*" onChange={onTokenFileChange} disabled={tokenUploading} />
+        </label>
+        {tokenUploading && <p className="hint">Uploading…</p>}
         <label>
           Color
           <SwatchPicker color={tokenColor} onChange={setTokenColor} />
@@ -292,6 +335,11 @@ export default function LockerPanel({ room }) {
           Image URL (optional)
           <input value={monsterImageUrl} onChange={(e) => setMonsterImageUrl(e.target.value)} placeholder="https://…" />
         </label>
+        <label className="file-label">
+          Or upload an image
+          <input type="file" accept="image/*" onChange={onMonsterFileChange} disabled={monsterUploading} />
+        </label>
+        {monsterUploading && <p className="hint">Uploading…</p>}
         <label>
           Color
           <SwatchPicker color={monsterColor} onChange={setMonsterColor} />

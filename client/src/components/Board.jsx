@@ -227,27 +227,19 @@ export default function Board({ room, playerId, isGM }) {
               const pos = dragging ? dragPos : pending || token;
               const mine = canControl(token);
               return (
-                <div
+                <TokenView
                   key={token.id}
-                  className={`token ${mine ? "mine" : ""} ${dragging ? "dragging" : ""}`}
-                  style={{
-                    left: `${pos.x}%`,
-                    top: `${pos.y}%`,
-                    width: token.size * zoom,
-                    height: token.size * zoom,
-                    backgroundColor: token.imageUrl ? "transparent" : token.color,
-                    backgroundImage: token.imageUrl ? `url(${token.imageUrl})` : undefined,
-                  }}
+                  token={token}
+                  mine={mine}
+                  dragging={dragging}
+                  pos={pos}
+                  zoom={zoom}
                   onPointerDown={(e) => onTokenPointerDown(e, token)}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
                     if (mine) setEditingTokenId(token.id);
                   }}
-                  title={token.label}
-                >
-                  {!token.imageUrl && <span className="token-label">{token.label.slice(0, 2).toUpperCase()}</span>}
-                  <span className="token-name">{token.label}</span>
-                </div>
+                />
               );
             })}
 
@@ -297,11 +289,75 @@ export default function Board({ room, playerId, isGM }) {
   );
 }
 
+// A background-image div can't tell you when the URL fails to load, so a bad
+// link just rendered as an empty circle with no feedback at all. An <img>
+// with onError lets a broken/hotlink-blocked URL fall back to the plain
+// color+initials look instead of silently showing nothing.
+function TokenView({ token, mine, dragging, pos, zoom, onPointerDown, onDoubleClick }) {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  useEffect(() => {
+    setImgFailed(false);
+  }, [token.imageUrl]);
+
+  const showImage = !!token.imageUrl && !imgFailed;
+
+  return (
+    <div
+      className={`token ${mine ? "mine" : ""} ${dragging ? "dragging" : ""}`}
+      style={{
+        left: `${pos.x}%`,
+        top: `${pos.y}%`,
+        width: token.size * zoom,
+        height: token.size * zoom,
+        backgroundColor: showImage ? "transparent" : token.color,
+      }}
+      onPointerDown={onPointerDown}
+      onDoubleClick={onDoubleClick}
+      title={token.label}
+    >
+      {showImage && (
+        <img className="token-image" src={token.imageUrl} alt="" draggable={false} onError={() => setImgFailed(true)} />
+      )}
+      {!showImage && <span className="token-label">{token.label.slice(0, 2).toUpperCase()}</span>}
+      <span className="token-name">{token.label}</span>
+    </div>
+  );
+}
+
+async function uploadTokenImage(file) {
+  const form = new FormData();
+  form.append("image", file);
+  const res = await fetch("/api/upload", { method: "POST", body: form });
+  const data = await res.json();
+  return data.url;
+}
+
 function AddTokenForm({ onSubmit, onCancel }) {
   const [label, setLabel] = useState("");
   const [color, setColor] = useState(PALETTE[Math.floor(Math.random() * PALETTE.length)]);
   const [imageUrl, setImageUrl] = useState("");
   const [size, setSize] = useState(48);
+  const [uploading, setUploading] = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
+
+  async function onFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadTokenImage(file);
+      if (url) {
+        setImgFailed(false);
+        setImageUrl(url);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
 
   return (
     <form
@@ -317,8 +373,29 @@ function AddTokenForm({ onSubmit, onCancel }) {
       </label>
       <label>
         Image URL (optional)
-        <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" />
+        <input
+          value={imageUrl}
+          onChange={(e) => {
+            setImgFailed(false);
+            setImageUrl(e.target.value);
+          }}
+          placeholder="https://…"
+        />
       </label>
+      <label className="file-label">
+        Or upload an image
+        <input type="file" accept="image/*" onChange={onFileChange} disabled={uploading} />
+      </label>
+      {uploading && <p className="hint">Uploading…</p>}
+      {imageUrl && !uploading && (
+        <div className="token-image-preview">
+          {!imgFailed ? (
+            <img src={imageUrl} alt="" onError={() => setImgFailed(true)} />
+          ) : (
+            <p className="hint">Couldn't load that image - check the link, or upload a file instead.</p>
+          )}
+        </div>
+      )}
       <label>
         Color
         <div className="swatches">

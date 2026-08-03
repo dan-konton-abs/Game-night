@@ -7,6 +7,29 @@ export default function TokenEditor({ token, room, isGM, onClose }) {
   const [imageUrl, setImageUrl] = useState(token.imageUrl || "");
   const [size, setSize] = useState(token.size);
   const [ownerId, setOwnerId] = useState(token.ownerId || "");
+  const [uploading, setUploading] = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
+
+  async function onFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (data.url) {
+        setImgFailed(false);
+        setImageUrl(data.url);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
 
   function save() {
     socket.emit("token:update", {
@@ -30,8 +53,29 @@ export default function TokenEditor({ token, room, isGM, onClose }) {
       </label>
       <label>
         Image URL
-        <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" />
+        <input
+          value={imageUrl}
+          onChange={(e) => {
+            setImgFailed(false);
+            setImageUrl(e.target.value);
+          }}
+          placeholder="https://…"
+        />
       </label>
+      <label className="file-label">
+        Or upload an image
+        <input type="file" accept="image/*" onChange={onFileChange} disabled={uploading} />
+      </label>
+      {uploading && <p className="hint">Uploading…</p>}
+      {imageUrl && !uploading && (
+        <div className="token-image-preview">
+          {!imgFailed ? (
+            <img src={imageUrl} alt="" onError={() => setImgFailed(true)} />
+          ) : (
+            <p className="hint">Couldn't load that image - check the link, or upload a file instead.</p>
+          )}
+        </div>
+      )}
       <label>
         Color
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
