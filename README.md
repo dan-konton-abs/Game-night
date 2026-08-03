@@ -26,7 +26,11 @@ over-engineered. Ideate and extend from here.
   change what anyone else sees. The grid and tokens scale together with
   zoom, so alignment with the GM's configured grid size is never thrown off.
   On a tablet, pinch and drag are scoped to the board itself rather than
-  zooming the whole page.
+  zooming the whole page. A separate GM-only "Map scale" slider (GM Tools →
+  Grid) resizes just the map image, independent of everyone's personal zoom
+  and of the grid/token sizes - handy when a map's own printed grid doesn't
+  quite match this app's grid size: set token sizes against the grid first,
+  then scale the map image to line its squares up, without disturbing either.
 - **Fog of war.** The GM can toggle a fog layer over the map from the
   "🌫 Fog of War" control above the board, then drag to paint areas hidden or
   revealed (pick a brush size, or Reveal All/Hide All to clear the whole

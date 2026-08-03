@@ -391,9 +391,20 @@ label {
   position: relative;
   width: 100%;
   height: 100%;
+  /* Establishes a stacking context so z-index values inside (fog, dragged
+     tokens) are contained here and never bleed out to paint over sibling UI
+     like the zoom controls, which live outside this element. */
+  z-index: 0;
+}
+
+.board-map-image {
+  position: absolute;
+  inset: 0;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
+  transform-origin: 0 0;
+  pointer-events: none;
 }
 
 .board-grid {
@@ -465,6 +476,10 @@ label {
   position: absolute;
   inset: 0;
   z-index: 3;
+  /* Only intercepts pointer events while actively painting (set inline) -
+     otherwise it must let clicks/drags straight through to tokens and the
+     canvas underneath, fog on or not. */
+  pointer-events: none;
 }
 
 .fog-cell {

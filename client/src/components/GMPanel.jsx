@@ -134,6 +134,21 @@ export default function GMPanel({ room }) {
           onChange={(e) => socket.emit("board:update", { gridSize: Number(e.target.value) })}
         />
       </label>
+      <label>
+        Map scale ({Math.round((room.board.mapScale ?? 1) * 100)}%)
+        <input
+          type="range"
+          min="20"
+          max="400"
+          value={Math.round((room.board.mapScale ?? 1) * 100)}
+          onChange={(e) => socket.emit("board:update", { mapScale: Number(e.target.value) / 100 })}
+        />
+      </label>
+      <p className="hint">
+        Scales just the map image, leaving the grid and token sizes alone - use this to line up
+        the map's own printed grid (if it has one) with the grid above, independent of everyone's
+        personal zoom.
+      </p>
 
       <h3>Scenes</h3>
       <p className="hint">

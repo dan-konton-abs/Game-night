@@ -331,9 +331,18 @@ export default function Board({ room, playerId, isGM }) {
             style={{
               width: `${zoom * 100}%`,
               height: `${zoom * 100}%`,
-              backgroundImage: board.backgroundUrl ? `url(${board.backgroundUrl})` : undefined,
             }}
           >
+            {board.backgroundUrl && (
+              <div
+                className="board-map-image"
+                style={{
+                  backgroundImage: `url(${board.backgroundUrl})`,
+                  transform: `scale(${board.mapScale ?? 1})`,
+                }}
+              />
+            )}
+
             <div className="board-grid" style={gridStyle} />
 
             {!board.backgroundUrl && (

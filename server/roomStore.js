@@ -68,6 +68,10 @@ function blankRoom(code) {
       backgroundUrl: null,
       gridSize: 50,
       showGrid: true,
+      // Independent of gridSize/zoom - calibrates the map image itself (e.g.
+      // a battlemap whose own printed grid doesn't quite match this app's
+      // grid size) without touching the grid or token scale.
+      mapScale: 1,
       fog: blankFog(),
     },
     tokens: {},
@@ -122,6 +126,10 @@ function ensureLoaded(code) {
     if (!loaded.locker) loaded.locker = { tokens: {}, maps: {}, monsters: {} };
     ensureFog(loaded.board);
     for (const scene of Object.values(loaded.scenes)) ensureFog(scene.board);
+    if (loaded.board.mapScale === undefined) loaded.board.mapScale = 1;
+    for (const scene of Object.values(loaded.scenes)) {
+      if (scene.board.mapScale === undefined) scene.board.mapScale = 1;
+    }
     rooms.set(code, loaded);
     return loaded;
   }
