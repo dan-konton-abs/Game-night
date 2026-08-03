@@ -22,6 +22,7 @@ export default function App() {
   const [room, setRoom] = useState(null);
   const [whispers, setWhispers] = useState({});
   const [whisperHistoryLoaded, setWhisperHistoryLoaded] = useState(false);
+  const [rulesKeeperMessages, setRulesKeeperMessages] = useState([]);
   const [toast, setToast] = useState(null);
   const [connected, setConnected] = useState(true);
   const roomRef = useRef(null);
@@ -71,6 +72,9 @@ export default function App() {
       const otherId = message.fromId === user?.id ? message.toId : message.fromId;
       setWhispers((prev) => ({ ...prev, [otherId]: [...(prev[otherId] || []), message] }));
     }
+    function onRulesKeeperHistory({ messages }) {
+      setRulesKeeperMessages(messages || []);
+    }
     function onConnectError(err) {
       if (err?.message === "unauthorized") {
         // Token was rejected by the server (deleted account, corrupted token, etc).
@@ -84,6 +88,7 @@ export default function App() {
       setTimeout(() => setToast(null), 4000);
       setRoom(null);
       setWhispers({});
+      setRulesKeeperMessages([]);
       refreshGames();
     }
 
@@ -91,6 +96,7 @@ export default function App() {
     socket.on("room:error", onRoomError);
     socket.on("chat:whisperHistory", onWhisperHistory);
     socket.on("chat:whisper", onWhisper);
+    socket.on("rulesKeeper:history", onRulesKeeperHistory);
     socket.on("connect_error", onConnectError);
     socket.on("room:deleted", onRoomDeleted);
 
@@ -99,6 +105,7 @@ export default function App() {
       socket.off("room:error", onRoomError);
       socket.off("chat:whisperHistory", onWhisperHistory);
       socket.off("chat:whisper", onWhisper);
+      socket.off("rulesKeeper:history", onRulesKeeperHistory);
       socket.off("connect_error", onConnectError);
       socket.off("room:deleted", onRoomDeleted);
     };
@@ -127,6 +134,7 @@ export default function App() {
           setRoom(null);
           setWhispers({});
           setWhisperHistoryLoaded(false);
+          setRulesKeeperMessages([]);
           refreshGames();
         }
       });
@@ -158,6 +166,7 @@ export default function App() {
     setRoom(null);
     setWhispers({});
     setWhisperHistoryLoaded(false);
+    setRulesKeeperMessages([]);
     socket.disconnect();
   }, []);
 
@@ -166,6 +175,7 @@ export default function App() {
     setRoom(null);
     setWhispers({});
     setWhisperHistoryLoaded(false);
+    setRulesKeeperMessages([]);
     refreshGames();
   }, [refreshGames]);
 
@@ -193,6 +203,7 @@ export default function App() {
           room={room}
           whispers={whispers}
           whisperHistoryLoaded={whisperHistoryLoaded}
+          rulesKeeperMessages={rulesKeeperMessages}
           playerId={user.id}
           identity={user}
           onLeave={handleBackToGames}

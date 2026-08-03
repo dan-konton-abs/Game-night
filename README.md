@@ -134,6 +134,17 @@ over-engineered. Ideate and extend from here.
   positions); save a recurring monster/NPC's appearance plus free-form notes
   (stat block, tactics, whatever's useful) and drop it in whenever it shows
   up again. Everything in the Locker can be renamed or deleted.
+- **Rules Keeper.** The GM uploads this game's rulebook as a PDF from GM
+  Tools, and anyone can then ask "📖 Instructions" (top bar, always visible)
+  questions about it - answered in-character by a grumpy AI archivist who
+  resents being woken up but is meticulous about getting the rules right.
+  Good for picking up a new system's rules as you play instead of stopping
+  to look them up. Each person's conversation is their own (not shared with
+  the table, like whispers), and the Keeper only ever sees the rulebook
+  itself plus that person's own past questions - it has no access to the
+  live game (tokens, chat, character sheets, etc.) and never will unless
+  that's deliberately built later. Requires a `GEMINI_API_KEY` (see below);
+  without one, asking just explains that to whoever asks.
 - **My Games dashboard.** After logging in you land on a list of every game
   you're part of (as GM or player), each with a name the GM can set (and
   rename any time), so you can run more than one game at a time and resume
@@ -219,6 +230,12 @@ local dev, where sensible defaults/fallbacks kick in with a console warning):
   `MAIL_FROM` — your mail server, for sending password-reset emails. Without
   `SMTP_HOST` set, reset links are just logged to the server console instead
   of emailed — fine for local dev, not for real use.
+- `GEMINI_API_KEY` — powers the Rules Keeper (see below). Without one, asking
+  the Keeper a question fails with a message pointing at this variable
+  instead of an error. Get a key from
+  [Google AI Studio](https://aistudio.google.com/apikey).
+- `GEMINI_MODEL` — which Gemini model the Keeper uses. Defaults to
+  `gemini-2.5-flash`, a good balance of cost and quality for this.
 
 Then share the public URL with the group instead of `localhost:5173`, same
 Discord call as always, new tab pointed at the board.

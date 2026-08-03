@@ -12,6 +12,7 @@ const userStore = require("./userStore");
 const { signToken, verifyToken } = require("./auth");
 const { sendPasswordResetEmail } = require("./mailer");
 const { rollFormula, rollAlienPool, rollBladeRunner, pushBladeRunner } = require("./dice");
+const { askRulesKeeper, MAX_HISTORY: RULES_KEEPER_MAX_HISTORY } = require("./rulesKeeper");
 
 const PORT = process.env.PORT || 4000;
 const PUBLIC_URL = process.env.PUBLIC_URL || `http://localhost:${PORT}`;
@@ -33,10 +34,10 @@ const upload = multer({
       cb(null, `${store.newId()}${ext}`);
     },
   }),
-  limits: { fileSize: 12 * 1024 * 1024 },
+  limits: { fileSize: 30 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (/^image\//.test(file.mimetype)) cb(null, true);
-    else cb(new Error("Only image uploads are allowed"));
+    if (/^image\//.test(file.mimetype) || file.mimetype === "application/pdf") cb(null, true);
+    else cb(new Error("Only image or PDF uploads are allowed"));
   },
 });
 
@@ -230,13 +231,21 @@ function isGM(room, playerId) {
 // Tracks each player's current socket so whispers can be delivered to exactly
 // the two people involved, instead of the room-wide state broadcast.
 const playerSockets = new Map();
+// Simple in-memory per-player cooldown for Rules Keeper questions - not
+// persisted, just a guard against accidental double-submits hitting the
+// paid Gemini API twice for the same question.
+const rulesKeeperCooldowns = new Map();
 
 function broadcast(room) {
   store.touch(room.code);
   // Whispers are deliberately excluded here - they're delivered by direct
   // socket targeting instead, so they never pass through everyone's client.
-  const { whispers, ...publicState } = room;
-  io.to(room.code).emit("room:state", publicState);
+  // Rules Keeper conversations get the same treatment (each player's Q&A
+  // history is their own), but the rulebook's fileName/uploadedAt stay
+  // public so everyone can see one is loaded.
+  const { whispers, rulesKeeper, ...publicState } = room;
+  const { conversations, ...publicRulesKeeper } = rulesKeeper;
+  io.to(room.code).emit("room:state", { ...publicState, rulesKeeper: publicRulesKeeper });
 }
 
 function sendWhisperHistory(socket, room, playerId) {
@@ -248,6 +257,10 @@ function sendWhisperHistory(socket, room, playerId) {
     threads[otherId] = messages;
   }
   socket.emit("chat:whisperHistory", { threads });
+}
+
+function sendRulesKeeperHistory(socket, room, playerId) {
+  socket.emit("rulesKeeper:history", { messages: room.rulesKeeper.conversations[playerId] || [] });
 }
 
 function publicError(socket, message) {
@@ -312,6 +325,7 @@ io.on("connection", (socket) => {
 
       broadcast(room);
       sendWhisperHistory(socket, room, playerId);
+      sendRulesKeeperHistory(socket, room, playerId);
       ack?.({ ok: true, code: room.code, role: "gm" });
     } catch (err) {
       ack?.({ ok: false, error: err.message });
@@ -357,6 +371,7 @@ io.on("connection", (socket) => {
 
       broadcast(room);
       sendWhisperHistory(socket, room, playerId);
+      sendRulesKeeperHistory(socket, room, playerId);
       ack?.({ ok: true, code: room.code, role });
     } catch (err) {
       ack?.({ ok: false, error: err.message });
@@ -428,6 +443,91 @@ io.on("connection", (socket) => {
     fog.cells = fog.cells.map(() => !!hidden);
     fog.initialized = true;
     broadcast(room);
+  });
+
+  // The Keeper of the Rules: a grumpy AI rules assistant grounded in
+  // whatever rulebook PDF the GM has loaded. Deliberately kept separate
+  // from every other room-state handler - it never reads tokens, chat,
+  // character sheets, or initiative, only the rulebook and the asking
+  // player's own past questions.
+  socket.on("rulesKeeper:setRulebook", ({ url, fileName }) => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can set the rulebook.");
+    const cleanUrl = clampText(url, 500);
+    if (!cleanUrl.startsWith("/uploads/")) return publicError(socket, "Upload a PDF file first.");
+
+    room.rulesKeeper.fileName = clampText(fileName, 200) || "Rulebook.pdf";
+    room.rulesKeeper.localPath = path.join(UPLOAD_DIR, path.basename(cleanUrl));
+    room.rulesKeeper.uploadedAt = Date.now();
+    // The old file reference (if any) belonged to the previous rulebook -
+    // force a fresh Gemini upload next time someone asks, and start every
+    // player's conversation over since it referenced the old book.
+    room.rulesKeeper.geminiFileUri = null;
+    room.rulesKeeper.geminiFileExpiresAt = null;
+    room.rulesKeeper.conversations = {};
+
+    broadcast(room);
+  });
+
+  socket.on("rulesKeeper:remove", () => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can remove the rulebook.");
+    room.rulesKeeper = store.blankRulesKeeper();
+    broadcast(room);
+  });
+
+  socket.on("rulesKeeper:clearMine", () => {
+    const room = currentRoom();
+    if (!room) return;
+    delete room.rulesKeeper.conversations[socket.data.playerId];
+    broadcast(room);
+    sendRulesKeeperHistory(socket, room, socket.data.playerId);
+  });
+
+  socket.on("rulesKeeper:ask", async ({ question }, ack) => {
+    const room = currentRoom();
+    if (!room) return ack?.({ ok: false, error: "Not in a game." });
+    const playerId = socket.data.playerId;
+    const player = room.players[playerId];
+    if (!player) return ack?.({ ok: false, error: "Not in a game." });
+
+    const cleanQuestion = clampText(question, 500).trim();
+    if (!cleanQuestion) return ack?.({ ok: false, error: "Ask an actual question." });
+    if (!room.rulesKeeper.fileName) {
+      return ack?.({ ok: false, error: "No rulebook has been loaded yet - ask your GM to upload one from GM Tools." });
+    }
+
+    // A light per-player cooldown, mostly to stop an accidental double-click
+    // from firing two paid API calls for the same question.
+    const now = Date.now();
+    const lastAsk = rulesKeeperCooldowns.get(playerId) || 0;
+    if (now - lastAsk < 3000) return ack?.({ ok: false, error: "Give the Keeper a moment to catch their breath." });
+    rulesKeeperCooldowns.set(playerId, now);
+
+    const history = room.rulesKeeper.conversations[playerId] || [];
+    const userMessage = { id: store.newId(), role: "user", text: cleanQuestion, timestamp: now };
+
+    try {
+      const answer = await askRulesKeeper(room.rulesKeeper, history, cleanQuestion);
+      const modelMessage = { id: store.newId(), role: "model", text: answer, timestamp: Date.now() };
+      const updated = [...history, userMessage, modelMessage].slice(-RULES_KEEPER_MAX_HISTORY);
+      room.rulesKeeper.conversations[playerId] = updated;
+
+      broadcast(room);
+      sendRulesKeeperHistory(socket, room, playerId);
+      ack?.({ ok: true });
+    } catch (err) {
+      const messages = {
+        NO_API_KEY: "The Keeper isn't reachable - ask whoever hosts this server to set up a Gemini API key.",
+        NO_RULEBOOK: "No rulebook has been loaded yet - ask your GM to upload one from GM Tools.",
+        FILE_PROCESSING_FAILED: "The Keeper couldn't make sense of that rulebook file. Try re-uploading it.",
+        EMPTY_RESPONSE: "The Keeper grumbled something unintelligible. Try asking again.",
+      };
+      console.error("Rules Keeper error:", err.message);
+      ack?.({ ok: false, error: messages[err.message] || "The Keeper is unreachable right now - try again in a moment." });
+    }
   });
 
   socket.on("token:add", (token) => {

@@ -1519,3 +1519,106 @@ fieldset {
   background: #145c37;
   border-radius: 8px;
 }
+
+.rules-keeper-trigger {
+  margin-left: auto;
+}
+
+/* Modal (currently just the Rules Keeper, but written generically) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  width: 480px;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  gap: 12px;
+}
+
+.modal-header h3 {
+  margin: 0;
+}
+
+.rules-keeper-subtitle {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.rules-keeper-messages {
+  flex: 1;
+  min-height: 220px;
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px;
+  margin-bottom: 10px;
+}
+
+.rules-keeper-empty {
+  color: var(--muted);
+  text-align: center;
+  margin: auto 0;
+  font-size: 0.9rem;
+}
+
+.rules-keeper-message {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  max-width: 85%;
+  white-space: pre-wrap;
+}
+
+.rules-keeper-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #0a0d14;
+}
+
+.rules-keeper-model {
+  align-self: flex-start;
+  background: var(--panel-alt);
+}
+
+.rules-keeper-thinking {
+  font-style: italic;
+  color: var(--muted);
+}
+
+.rules-keeper-form {
+  display: flex;
+  gap: 8px;
+}
+
+.rules-keeper-form input {
+  flex: 1;
+}
+
+.rules-keeper-clear {
+  margin-top: 8px;
+  align-self: flex-start;
+}

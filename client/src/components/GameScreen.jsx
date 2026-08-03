@@ -7,6 +7,7 @@ import PlayersPanel from "./PlayersPanel.jsx";
 import InitiativePanel from "./InitiativePanel.jsx";
 import GMPanel from "./GMPanel.jsx";
 import LockerPanel from "./LockerPanel.jsx";
+import RulesKeeperModal from "./RulesKeeperModal.jsx";
 
 const SIDEBAR_WIDTH_KEY = "gamenight:sidebarWidth";
 const SIDEBAR_MIN = 280;
@@ -19,10 +20,20 @@ function loadSidebarWidth() {
   return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, stored));
 }
 
-export default function GameScreen({ room, whispers, whisperHistoryLoaded, playerId, identity, onLeave, connected }) {
+export default function GameScreen({
+  room,
+  whispers,
+  whisperHistoryLoaded,
+  rulesKeeperMessages,
+  playerId,
+  identity,
+  onLeave,
+  connected,
+}) {
   const me = room.players[playerId];
   const isGM = room.gmPlayerId === playerId;
   const [tab, setTab] = useState("chat");
+  const [rulesKeeperOpen, setRulesKeeperOpen] = useState(false);
   const [viewCharacterId, setViewCharacterId] = useState(playerId);
   const [activeThread, setActiveThread] = useState("everyone");
   const [seenCounts, setSeenCounts] = useState({ everyone: 0, whispers: {} });
@@ -139,10 +150,23 @@ export default function GameScreen({ room, whispers, whisperHistoryLoaded, playe
         <div className="me">
           {me?.name || identity.name} {isGM ? "(Game Master)" : ""}
         </div>
+        <button className="link-button rules-keeper-trigger" onClick={() => setRulesKeeperOpen(true)}>
+          📖 Instructions
+        </button>
         <button className="link-button" onClick={onLeave}>
           My Games
         </button>
       </header>
+
+      {rulesKeeperOpen && (
+        <RulesKeeperModal
+          room={room}
+          playerId={playerId}
+          isGM={isGM}
+          messages={rulesKeeperMessages}
+          onClose={() => setRulesKeeperOpen(false)}
+        />
+      )}
 
       <div className="game-body">
         <Board room={room} playerId={playerId} isGM={isGM} />

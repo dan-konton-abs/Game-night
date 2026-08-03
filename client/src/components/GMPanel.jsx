@@ -8,6 +8,7 @@ export default function GMPanel({ room }) {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [newSceneName, setNewSceneName] = useState("");
+  const [rulebookUploading, setRulebookUploading] = useState(false);
 
   function applyBackground(url) {
     socket.emit("board:update", { backgroundUrl: url });
@@ -32,6 +33,31 @@ export default function GMPanel({ room }) {
       setUploading(false);
       e.target.value = "";
     }
+  }
+
+  async function onRulebookFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setRulebookUploading(true);
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (data.url) {
+        socket.emit("rulesKeeper:setRulebook", { url: data.url, fileName: file.name });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRulebookUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  function removeRulebook() {
+    if (!confirm("Remove the loaded rulebook? This also clears everyone's conversation with the Keeper.")) return;
+    socket.emit("rulesKeeper:remove");
   }
 
   function clearAllTokens() {
@@ -200,6 +226,28 @@ export default function GMPanel({ room }) {
           Save current map as scene
         </button>
       </div>
+
+      <h3>Rules Keeper</h3>
+      <p className="hint">
+        Upload this game's rulebook so anyone can ask the Keeper of the Rules about it any time from
+        the "📖 Instructions" button - handy for learning the rules as you play. It only answers rules
+        questions from the book itself; it never sees anything about the live game.
+      </p>
+      {room.rulesKeeper.fileName ? (
+        <p className="hint">
+          Loaded: {room.rulesKeeper.fileName}{" "}
+          <button type="button" className="link-button" onClick={removeRulebook}>
+            Remove
+          </button>
+        </p>
+      ) : (
+        <p className="hint">No rulebook loaded yet.</p>
+      )}
+      <label className="file-label">
+        {room.rulesKeeper.fileName ? "Replace rulebook PDF" : "Upload rulebook PDF"}
+        <input type="file" accept="application/pdf" onChange={onRulebookFileChange} disabled={rulebookUploading} />
+      </label>
+      {rulebookUploading && <p className="hint">Uploading…</p>}
 
       <h3>Danger zone</h3>
       <button type="button" className="danger" onClick={clearAllTokens}>

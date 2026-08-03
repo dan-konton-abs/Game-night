@@ -27,6 +27,23 @@ function ensureFog(board) {
   return board;
 }
 
+// The Rules Keeper is room-level, not tied to any one Scene/board - one
+// rulebook per game. localPath is kept alongside the public-facing fileName
+// so the Gemini File API reference can be silently re-uploaded from disk if
+// it's ever missing or past its ~48h expiry. Conversations are per-player
+// and never broadcast to the rest of the room (same treatment as whispers)
+// - each player's Q&A history is their own.
+function blankRulesKeeper() {
+  return {
+    fileName: null,
+    localPath: null,
+    uploadedAt: null,
+    geminiFileUri: null,
+    geminiFileExpiresAt: null,
+    conversations: {},
+  };
+}
+
 /** @type {Map<string, object>} in-memory authoritative room state, keyed by room code */
 const rooms = new Map();
 const saveTimers = new Map();
@@ -85,6 +102,7 @@ function blankRoom(code) {
     initiative: { active: false, round: 1, currentIndex: 0, entries: [], notifyTurns: true },
     theme: "default",
     locker: { tokens: {}, maps: {}, monsters: {} },
+    rulesKeeper: blankRulesKeeper(),
   };
 }
 
@@ -125,6 +143,7 @@ function ensureLoaded(code) {
     if (loaded.initiative.notifyTurns === undefined) loaded.initiative.notifyTurns = true;
     if (!loaded.theme) loaded.theme = "default";
     if (!loaded.locker) loaded.locker = { tokens: {}, maps: {}, monsters: {} };
+    if (!loaded.rulesKeeper) loaded.rulesKeeper = blankRulesKeeper();
     ensureFog(loaded.board);
     for (const scene of Object.values(loaded.scenes)) ensureFog(scene.board);
     if (loaded.board.mapScale === undefined) loaded.board.mapScale = 1;
@@ -195,5 +214,6 @@ module.exports = {
   whisperKey,
   listRoomsForUser,
   ensureFog,
+  blankRulesKeeper,
   newId: nanoid,
 };
