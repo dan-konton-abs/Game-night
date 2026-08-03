@@ -125,6 +125,16 @@ export default function GMPanel({ room }) {
         Show grid overlay
       </label>
       <label>
+        Grid shape
+        <select
+          value={room.board.gridShape || "square"}
+          onChange={(e) => socket.emit("board:update", { gridShape: e.target.value })}
+        >
+          <option value="square">Square</option>
+          <option value="hex">Hexagonal</option>
+        </select>
+      </label>
+      <label>
         Grid size ({room.board.gridSize}px)
         <input
           type="range"

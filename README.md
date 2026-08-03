@@ -18,8 +18,10 @@ over-engineered. Ideate and extend from here.
   dragged wider or narrower from its left edge if the tabs ever feel cramped
   for your screen/font - it remembers your chosen width next time.
 - **Shared board.** The GM sets a background map (paste an image URL, or
-  upload an image file). An optional grid overlay can be toggled/resized.
-  Anyone can independently zoom in/out on their own view (buttons, or
+  upload an image file). An optional grid overlay can be toggled/resized,
+  and switched between square and hexagonal (better for tactical line-of-
+  sight) from GM Tools. Anyone can independently zoom in/out on their own
+  view (buttons, or
   Ctrl/Cmd+scroll wheel, trackpad pinch, or a two-finger touch pinch on
   tablet/phone) and pan around by scrolling or one-finger dragging on touch —
   purely a personal viewing preference, so one player zooming in doesn't

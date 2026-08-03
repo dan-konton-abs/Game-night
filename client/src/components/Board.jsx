@@ -8,6 +8,38 @@ const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.25;
 const FOG_BRUSH_RADIUS = { small: 0, medium: 1, large: 2 };
 
+// A pointy-top hex grid can't be drawn with plain CSS linear-gradients like
+// the square grid, so this builds a small seamless-tiling SVG instead: one
+// full hexagon plus two half-hexagons (cut at the tile edges, completed by
+// the next tile over) is the standard trick for tiling hexagons with plain
+// background-repeat. `cellWidth` matches the square grid's cell width so
+// switching shapes at the same grid size gives comparably-sized cells.
+function hexGridBackground(cellWidth, color) {
+  const width = cellWidth;
+  const radius = width / Math.sqrt(3);
+  const height = radius * 3;
+
+  function hexPoints(cx, cy) {
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = ((60 * i - 90) * Math.PI) / 180;
+      pts.push(`${(cx + radius * Math.cos(angle)).toFixed(2)},${(cy + radius * Math.sin(angle)).toFixed(2)}`);
+    }
+    return pts.join(" ");
+  }
+
+  const hexes = [hexPoints(width / 2, radius), hexPoints(0, radius * 2.5), hexPoints(width, radius * 2.5)]
+    .map((points) => `<polygon points="${points}" fill="none" stroke="${color}" stroke-width="1" />`)
+    .join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${hexes}</svg>`;
+
+  return {
+    backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
+    backgroundSize: `${width}px ${height}px`,
+    backgroundRepeat: "repeat",
+  };
+}
+
 export default function Board({ room, playerId, isGM }) {
   const containerRef = useRef(null);
   const viewportRef = useRef(null);
@@ -302,11 +334,14 @@ export default function Board({ room, playerId, isGM }) {
 
   const board = room.board;
   const gridLineColor = room.theme === "scifi" ? "rgba(51,255,122,0.35)" : "rgba(255,255,255,0.12)";
+  const gridCellWidth = board.gridSize * zoom;
   const gridStyle = board.showGrid
-    ? {
-        backgroundImage: `linear-gradient(to right, ${gridLineColor} 1px, transparent 1px), linear-gradient(to bottom, ${gridLineColor} 1px, transparent 1px)`,
-        backgroundSize: `${board.gridSize * zoom}px ${board.gridSize * zoom}px`,
-      }
+    ? board.gridShape === "hex"
+      ? hexGridBackground(gridCellWidth, gridLineColor)
+      : {
+          backgroundImage: `linear-gradient(to right, ${gridLineColor} 1px, transparent 1px), linear-gradient(to bottom, ${gridLineColor} 1px, transparent 1px)`,
+          backgroundSize: `${gridCellWidth}px ${gridCellWidth}px`,
+        }
     : {};
 
   const tokens = Object.values(room.tokens);

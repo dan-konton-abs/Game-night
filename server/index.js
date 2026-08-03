@@ -378,6 +378,7 @@ io.on("connection", (socket) => {
     if ("backgroundUrl" in patch) room.board.backgroundUrl = clampText(patch.backgroundUrl, 2000) || null;
     if ("gridSize" in patch) room.board.gridSize = Math.min(Math.max(Number(patch.gridSize) || 50, 10), 300);
     if ("showGrid" in patch) room.board.showGrid = !!patch.showGrid;
+    if ("gridShape" in patch) room.board.gridShape = patch.gridShape === "hex" ? "hex" : "square";
     if ("mapScale" in patch) room.board.mapScale = Math.min(Math.max(Number(patch.mapScale) || 1, 0.2), 4);
 
     broadcast(room);
