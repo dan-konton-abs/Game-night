@@ -43,6 +43,13 @@ over-engineered. Ideate and extend from here.
   underneath too) but only dimmed for the GM, who always sees the full board
   while painting. Fog is saved as part of each Scene, so switching locations
   brings back that location's own fog state.
+- **Ambient music.** The GM sets a soundtrack (paste a URL or upload an audio
+  file, same as any other media in the app) from GM Tools, then plays/stops
+  it from a small always-visible control at the top of the screen - visible
+  to everyone once a track is set, but only the GM can start/stop it or pick
+  what's playing. Everyone hears the same track in sync, including anyone
+  who joins or reconnects mid-track; each person's volume/mute is local to
+  their own browser and doesn't affect anyone else's.
 - **Tokens.** Anyone can add a token (their own); the GM can add tokens for
   anyone or unowned NPCs/monsters. A token's image can be set by pasting a
   URL or uploading a file directly, same as the map background — a preview

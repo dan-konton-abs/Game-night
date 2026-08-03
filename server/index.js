@@ -48,8 +48,8 @@ const upload = multer({
   }),
   limits: { fileSize: 30 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (/^image\//.test(file.mimetype) || file.mimetype === "application/pdf") cb(null, true);
-    else cb(new Error("Only image or PDF uploads are allowed"));
+    if (/^(image|audio)\//.test(file.mimetype) || file.mimetype === "application/pdf") cb(null, true);
+    else cb(new Error("Only image, audio, or PDF uploads are allowed"));
   },
 });
 
@@ -636,6 +636,48 @@ io.on("connection", (socket) => {
       console.error("Rules Keeper error:", err.message);
       ack?.({ ok: false, error: messages[err.message] || "The Keeper is unreachable right now - try again in a moment." });
     }
+  });
+
+  // Ambient music: the GM sets a track (URL or upload, same as any other
+  // media in this app) and everyone's client plays the same file in sync,
+  // computed from a server timestamp rather than a played-so-far position -
+  // simpler than round-tripping playback position, and it's what lets
+  // someone who joins mid-track land in the right spot automatically.
+  socket.on("music:update", (patch) => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can control the music.");
+
+    if ("url" in patch) {
+      room.music.url = clampText(patch.url, 2000) || null;
+      room.music.name = clampText(patch.name, 120) || null;
+      room.music.playing = false;
+      room.music.startedAt = null;
+    }
+    if ("loop" in patch) room.music.loop = !!patch.loop;
+
+    broadcast(room);
+  });
+
+  socket.on("music:play", () => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can control the music.");
+    if (!room.music.url) return;
+
+    room.music.playing = true;
+    room.music.startedAt = Date.now();
+    broadcast(room);
+  });
+
+  socket.on("music:stop", () => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can control the music.");
+
+    room.music.playing = false;
+    room.music.startedAt = null;
+    broadcast(room);
   });
 
   socket.on("token:add", (token) => {

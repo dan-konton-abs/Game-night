@@ -44,6 +44,15 @@ function blankRulesKeeper() {
   };
 }
 
+// Ambient music is room-level, not tied to a Scene/board - it's the sound of
+// the table itself for the whole session, not any one location, so it isn't
+// reset by switching maps. startedAt is a server timestamp; clients derive
+// their own playback position from how long ago that was, which is what
+// lets someone who joins (or reconnects) mid-track sync into the right spot.
+function blankMusic() {
+  return { url: null, name: null, playing: false, loop: true, startedAt: null };
+}
+
 /** @type {Map<string, object>} in-memory authoritative room state, keyed by room code */
 const rooms = new Map();
 const saveTimers = new Map();
@@ -92,6 +101,7 @@ function blankRoom(code) {
       mapScale: 1,
       fog: blankFog(),
     },
+    music: blankMusic(),
     tokens: {},
     characters: {},
     players: {},
@@ -152,6 +162,7 @@ function ensureLoaded(code) {
       if (scene.board.mapScale === undefined) scene.board.mapScale = 1;
       if (!scene.board.gridShape) scene.board.gridShape = "square";
     }
+    if (!loaded.music) loaded.music = blankMusic();
     rooms.set(code, loaded);
     return loaded;
   }
