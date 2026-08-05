@@ -5,6 +5,7 @@ import AuthScreen from "./components/AuthScreen.jsx";
 import ResetPasswordScreen from "./components/ResetPasswordScreen.jsx";
 import MyGamesScreen from "./components/MyGamesScreen.jsx";
 import GameScreen from "./components/GameScreen.jsx";
+import AdminScreen from "./components/AdminScreen.jsx";
 
 function getResetParams() {
   if (window.location.pathname !== "/reset-password") return null;
@@ -139,8 +140,17 @@ export default function App() {
         }
       });
     }
-    function onDisconnect() {
+    function onDisconnect(reason) {
       setConnected(false);
+      if (reason === "io server disconnect") {
+        // The server forcibly closed this socket (e.g. an admin just disabled
+        // or deleted the account) - Socket.IO only auto-reconnects after
+        // transport-level drops, not server-initiated ones, so we have to
+        // retry manually. That retry re-runs the io.use auth check, and if
+        // the account really is no longer valid it comes back as
+        // connect_error, which the handler above already logs out on.
+        socket.connect();
+      }
     }
 
     socket.on("connect", onConnect);
@@ -196,6 +206,8 @@ export default function App() {
       {toast && <div className="toast">{toast}</div>}
       {!user ? (
         <AuthScreen onAuthenticated={handleAuthenticated} />
+      ) : user.isAdmin ? (
+        <AdminScreen user={user} onLogout={handleLogout} />
       ) : !room ? (
         <MyGamesScreen user={user} games={games} onLogout={handleLogout} onRefreshGames={refreshGames} />
       ) : (

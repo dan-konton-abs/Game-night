@@ -160,6 +160,16 @@ over-engineered. Ideate and extend from here.
   rejoins the room you were in server-side (not just a client-side
   illusion) rather than leaving you looking at a board that's quietly
   stopped syncing. A banner shows while reconnecting so it's never silent.
+- **Admin accounts.** Emails listed in `ADMIN_EMAILS` (see below) land on a
+  dedicated admin screen instead of the game dashboard — no game-playing UI
+  at all, just a table of every registered account. From there you can
+  disable an account (kicks them immediately and blocks login until
+  re-enabled), re-enable one, trigger a password reset (hands you the reset
+  link directly, useful if email isn't set up), or delete an account outright
+  (blocked while they're still GM of a game, so you transfer or delete that
+  first). Admin status is computed from the env var on every request, not
+  stored on the account, so there's nothing to accidentally leave lying
+  around with elevated access.
 
 Not in the MVP (good candidates for v2+): measuring/rulers, map layers,
 per-token vision, richer character sheet templates per system. See
@@ -236,6 +246,9 @@ local dev, where sensible defaults/fallbacks kick in with a console warning):
   [Google AI Studio](https://aistudio.google.com/apikey).
 - `GEMINI_MODEL` — which Gemini model the Keeper uses. Defaults to
   `gemini-2.5-flash`, a good balance of cost and quality for this.
+- `ADMIN_EMAILS` — comma-separated list of email addresses that get an admin
+  account instead of a playing one (see below). Without it, nobody is an
+  admin. Revoking access is just removing the email and restarting.
 
 Then share the public URL with the group instead of `localhost:5173`, same
 Discord call as always, new tab pointed at the board.

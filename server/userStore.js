@@ -17,6 +17,10 @@ function load() {
     const raw = fs.readFileSync(USERS_PATH, "utf-8");
     const parsed = JSON.parse(raw);
     users = new Map(Object.entries(parsed));
+    // Backfill for accounts created before the disabled flag existed.
+    for (const user of users.values()) {
+      if (user.disabled === undefined) user.disabled = false;
+    }
   } catch {
     users = new Map();
   }
@@ -65,10 +69,26 @@ async function createUser({ name, email, password }) {
     createdAt: Date.now(),
     resetTokenHash: null,
     resetTokenExpires: null,
+    disabled: false,
   };
   users.set(user.id, user);
   scheduleSave();
   return user;
+}
+
+function listAll() {
+  return Array.from(users.values());
+}
+
+function setDisabled(user, disabled) {
+  user.disabled = !!disabled;
+  scheduleSave();
+}
+
+function deleteUser(userId) {
+  const existed = users.delete(userId);
+  if (existed) scheduleSave();
+  return existed;
 }
 
 async function verifyPassword(user, password) {
@@ -104,6 +124,11 @@ function publicUser(user) {
   return { id: user.id, name: user.name, email: user.email };
 }
 
+/** Everything an admin needs to see about an account - never passwordHash/resetToken*. */
+function adminUserView(user) {
+  return { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt, disabled: user.disabled };
+}
+
 module.exports = {
   findByEmail,
   findById,
@@ -113,4 +138,8 @@ module.exports = {
   consumeResetToken,
   setPassword,
   publicUser,
+  adminUserView,
+  listAll,
+  setDisabled,
+  deleteUser,
 };

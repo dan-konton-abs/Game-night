@@ -59,6 +59,7 @@ Environment=SMTP_USER=<smtp username, if required>
 Environment=SMTP_PASS=<smtp password, if required>
 Environment=MAIL_FROM=The Ante-Chamber <no-reply@yourdomain.com>
 Environment=GEMINI_API_KEY=<your Gemini API key, for the Rules Keeper - optional>
+Environment=ADMIN_EMAILS=<your email, comma-separated for more than one - optional>
 
 [Install]
 WantedBy=multi-user.target

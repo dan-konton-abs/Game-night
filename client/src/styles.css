@@ -205,6 +205,49 @@ label {
   flex-shrink: 0;
 }
 
+/* Admin dashboard */
+.admin-card {
+  width: min(820px, 100%);
+  max-width: 100%;
+}
+
+.admin-users-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.admin-users-table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-users-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-users-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.admin-row-disabled {
+  opacity: 0.55;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 /* Scenes list (GM Tools) */
 .scene-list {
   list-style: none;

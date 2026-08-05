@@ -16,6 +16,18 @@ const { askRulesKeeper, MAX_HISTORY: RULES_KEEPER_MAX_HISTORY } = require("./rul
 
 const PORT = process.env.PORT || 4000;
 const PUBLIC_URL = process.env.PUBLIC_URL || `http://localhost:${PORT}`;
+
+// Admin accounts are just regular accounts whose email is on this list - no
+// stored/mutable "isAdmin" flag to accidentally tamper with, and revoking is
+// as simple as editing this env var and restarting.
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
+function isAdminEmail(email) {
+  return ADMIN_EMAILS.includes(String(email || "").toLowerCase());
+}
 const CLIENT_DIST = path.join(__dirname, "..", "client", "dist");
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -59,8 +71,24 @@ function requireAuth(req, res, next) {
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   const payload = token && verifyToken(token);
   if (!payload) return res.status(401).json({ error: "Not signed in." });
+  // Re-checked against the live account (not just the JWT) on every request,
+  // so disabling/deleting an account takes effect immediately rather than
+  // waiting for its long-lived token to expire.
+  const user = userStore.findById(payload.id);
+  if (!user || user.disabled) return res.status(401).json({ error: "This account is no longer active." });
   req.user = payload;
   next();
+}
+
+function requireAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    if (!isAdminEmail(req.user.email)) return res.status(403).json({ error: "Admins only." });
+    next();
+  });
+}
+
+function withIsAdmin(user) {
+  return { ...userStore.publicUser(user), isAdmin: isAdminEmail(user.email) };
 }
 
 app.post("/api/auth/signup", authLimiter, async (req, res) => {
@@ -78,7 +106,7 @@ app.post("/api/auth/signup", authLimiter, async (req, res) => {
     }
 
     const user = await userStore.createUser({ name, email, password });
-    res.json({ token: signToken(user), user: userStore.publicUser(user) });
+    res.json({ token: signToken(user), user: withIsAdmin(user) });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -92,13 +120,14 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
   if (!user || !(await userStore.verifyPassword(user, password))) {
     return res.status(401).json({ error: "Incorrect email or password." });
   }
-  res.json({ token: signToken(user), user: userStore.publicUser(user) });
+  if (user.disabled) return res.status(403).json({ error: "This account has been disabled." });
+  res.json({ token: signToken(user), user: withIsAdmin(user) });
 });
 
 app.get("/api/auth/me", requireAuth, (req, res) => {
   const user = userStore.findById(req.user.id);
   if (!user) return res.status(401).json({ error: "Account no longer exists." });
-  res.json({ user: userStore.publicUser(user), games: store.listRoomsForUser(user.id) });
+  res.json({ user: withIsAdmin(user), games: store.listRoomsForUser(user.id) });
 });
 
 app.post("/api/auth/forgot-password", authLimiter, async (req, res) => {
@@ -176,6 +205,73 @@ app.post("/api/games/:code/leave", requireAuth, (req, res) => {
 
   const { whispers, ...publicState } = room;
   io.to(room.code).emit("room:state", publicState);
+  res.json({ ok: true });
+});
+
+// Forces an already-connected socket to reconnect, which re-runs the
+// io.use auth middleware below - since that middleware now rejects
+// disabled/deleted accounts, this is what makes admin actions take effect
+// immediately instead of waiting for the account's next natural reconnect.
+function kickPlayerSocket(userId) {
+  const socketId = playerSockets.get(userId);
+  const sock = socketId && io.sockets.sockets.get(socketId);
+  sock?.disconnect(true);
+}
+
+app.get("/api/admin/users", requireAdmin, (req, res) => {
+  const users = userStore
+    .listAll()
+    .map((u) => ({ ...userStore.adminUserView(u), gameCount: store.listRoomsForUser(u.id).length }))
+    .sort((a, b) => b.createdAt - a.createdAt);
+  res.json({ users });
+});
+
+app.post("/api/admin/users/:id/disable", requireAdmin, (req, res) => {
+  const user = userStore.findById(req.params.id);
+  if (!user) return res.status(404).json({ error: "Account not found." });
+  if (isAdminEmail(user.email)) return res.status(400).json({ error: "Can't disable an admin account." });
+
+  userStore.setDisabled(user, true);
+  kickPlayerSocket(user.id);
+  res.json({ ok: true });
+});
+
+app.post("/api/admin/users/:id/enable", requireAdmin, (req, res) => {
+  const user = userStore.findById(req.params.id);
+  if (!user) return res.status(404).json({ error: "Account not found." });
+
+  userStore.setDisabled(user, false);
+  res.json({ ok: true });
+});
+
+app.post("/api/admin/users/:id/reset-password", requireAdmin, (req, res) => {
+  const user = userStore.findById(req.params.id);
+  if (!user) return res.status(404).json({ error: "Account not found." });
+
+  const rawToken = userStore.createResetToken(user);
+  const resetUrl = `${PUBLIC_URL}/reset-password?uid=${user.id}&token=${rawToken}`;
+  sendPasswordResetEmail(user.email, resetUrl).catch((err) =>
+    console.error("Failed to send admin-triggered reset email:", err.message)
+  );
+  // Handed back directly (not just emailed) since this is a personal deployment -
+  // handy to relay the link yourself if SMTP isn't set up, or isn't working.
+  res.json({ ok: true, resetUrl });
+});
+
+app.delete("/api/admin/users/:id", requireAdmin, (req, res) => {
+  const user = userStore.findById(req.params.id);
+  if (!user) return res.status(404).json({ error: "Account not found." });
+  if (isAdminEmail(user.email)) return res.status(400).json({ error: "Can't delete an admin account." });
+
+  const gmOf = store.listRoomsForUser(user.id).filter((g) => g.role === "gm");
+  if (gmOf.length > 0) {
+    return res.status(400).json({
+      error: `They're the GM of ${gmOf.length} game(s) (${gmOf.map((g) => g.name || g.code).join(", ")}) - transfer or delete those first.`,
+    });
+  }
+
+  userStore.deleteUser(user.id);
+  kickPlayerSocket(user.id);
   res.json({ ok: true });
 });
 
@@ -273,9 +369,10 @@ io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   const payload = token && verifyToken(token);
   const user = payload && userStore.findById(payload.id);
-  if (!user) return next(new Error("unauthorized"));
+  if (!user || user.disabled) return next(new Error("unauthorized"));
   socket.data.playerId = user.id;
   socket.data.playerName = user.name;
+  socket.data.playerEmail = user.email;
   next();
 });
 
@@ -297,12 +394,20 @@ function leaveCurrentRoom(socket) {
 }
 
 io.on("connection", (socket) => {
+  // Tracked from the moment the socket authenticates, not just once they join
+  // a room - an admin disabling/deleting someone still logged in but sitting
+  // on the My Games screen needs to be able to kick that socket too.
+  playerSockets.set(socket.data.playerId, socket.id);
+
   socket.on("room:leave", () => {
     leaveCurrentRoom(socket);
   });
 
   socket.on("room:create", (payload, ack) => {
     try {
+      if (isAdminEmail(socket.data.playerEmail)) {
+        return ack?.({ ok: false, error: "Admin accounts can't play games." });
+      }
       leaveCurrentRoom(socket);
       const playerId = socket.data.playerId;
       const cleanName = socket.data.playerName;
@@ -334,6 +439,9 @@ io.on("connection", (socket) => {
 
   socket.on("room:join", ({ roomCode }, ack) => {
     try {
+      if (isAdminEmail(socket.data.playerEmail)) {
+        return ack?.({ ok: false, error: "Admin accounts can't play games." });
+      }
       const code = clampText(roomCode, 10).trim().toUpperCase();
       const room = store.ensureLoaded(code);
       if (!room) {
@@ -1193,6 +1301,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    // Only clear the mapping if it's still this socket - a reconnect can
+    // register its new socket.id before the old one's disconnect fires.
+    if (playerSockets.get(socket.data.playerId) === socket.id) {
+      playerSockets.delete(socket.data.playerId);
+    }
     const room = currentRoom();
     if (!room) return;
     const player = room.players[socket.data.playerId];
