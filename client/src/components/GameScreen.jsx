@@ -13,11 +13,17 @@ const SIDEBAR_WIDTH_KEY = "gamenight:sidebarWidth";
 const SIDEBAR_MIN = 280;
 const SIDEBAR_MAX = 640;
 const SIDEBAR_DEFAULT = 340;
+const DICE_3D_QUALITY_KEY = "gamenight:dice3dQuality";
 
 function loadSidebarWidth() {
   const stored = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
   if (!stored || Number.isNaN(stored)) return SIDEBAR_DEFAULT;
   return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, stored));
+}
+
+function loadDice3dQuality() {
+  const stored = localStorage.getItem(DICE_3D_QUALITY_KEY);
+  return ["off", "low", "high"].includes(stored) ? stored : "high";
 }
 
 export default function GameScreen({
@@ -40,6 +46,12 @@ export default function GameScreen({
   const baselineCapturedRef = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth);
   const resizeStartRef = useRef(null);
+  const [dice3dQuality, setDice3dQuality] = useState(loadDice3dQuality);
+
+  function changeDice3dQuality(next) {
+    setDice3dQuality(next);
+    localStorage.setItem(DICE_3D_QUALITY_KEY, next);
+  }
 
   // Treat all history that already exists once we've fully loaded (including
   // whisper history, which arrives a moment after room:state) as "seen", so
@@ -169,7 +181,7 @@ export default function GameScreen({
       )}
 
       <div className="game-body">
-        <Board room={room} playerId={playerId} isGM={isGM} />
+        <Board room={room} playerId={playerId} isGM={isGM} diceQuality={dice3dQuality} />
 
         <div
           className="sidebar-resize-handle"
@@ -202,7 +214,14 @@ export default function GameScreen({
                 unreadWhispers={unreadWhispers}
               />
             )}
-            {tab === "dice" && <DicePanel room={room} playerId={playerId} />}
+            {tab === "dice" && (
+              <DicePanel
+                room={room}
+                playerId={playerId}
+                dice3dQuality={dice3dQuality}
+                onChangeDice3dQuality={changeDice3dQuality}
+              />
+            )}
             {tab === "initiative" && <InitiativePanel room={room} playerId={playerId} isGM={isGM} />}
             {tab === "character" && (
               <CharacterSheet

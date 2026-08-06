@@ -1665,3 +1665,32 @@ fieldset {
   margin-top: 8px;
   align-self: flex-start;
 }
+
+/* ---------- 3D dice pop-up ---------- */
+
+.dice-stage-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.dice-stage-visible {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.dice-stage-overlay canvas {
+  display: block;
+  width: min(720px, 86%);
+  height: min(420px, 70%);
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
