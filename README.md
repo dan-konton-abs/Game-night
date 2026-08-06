@@ -50,6 +50,15 @@ over-engineered. Ideate and extend from here.
   what's playing. Everyone hears the same track in sync, including anyone
   who joins or reconnects mid-track; each person's volume/mute is local to
   their own browser and doesn't affect anyone else's.
+- **Soundboard.** A 3×3 grid of nine one-shot SFX slots in GM Tools (motion
+  sensor bips, metal clanging, whatever fits the scene) — upload a clip and
+  give it a label, then hit Play to fire it at everyone in the room
+  instantly, layered on top of the ambient track with no ducking or
+  interaction. Only the GM sees the soundboard at all; players just hear the
+  sound with no UI, toast, or other visual cue. Your own playback volume for
+  these (a single master slider in GM Tools) is local to your browser and
+  never affects anyone else — players control loudness with their own
+  system/browser volume.
 - **Tokens.** Anyone can add a token (their own); the GM can add tokens for
   anyone or unowned NPCs/monsters. A token's image can be set by pasting a
   URL or uploading a file directly, same as the map background — a preview
