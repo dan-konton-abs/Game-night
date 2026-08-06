@@ -14,6 +14,17 @@ far:
 - Per-token vision
 - Richer character sheet templates per system (beyond the free-form
   attribute list)
+- **GM soundboard.** One-shot SFX (motion sensor bip, metal clanging, that
+  kind of thing) the GM can fire off on top of the existing ambient music
+  track - a grid of buttons in GM Tools, each playing a short uploaded clip
+  for everyone in the room. Natural extension of the ambient-music system
+  already shipped (`MusicBar.jsx` / `server/index.js`'s `music:*` handlers,
+  reusing the same upload endpoint and server-timestamp sync trick so a
+  one-shot lands in-sync rather than round-tripped) - the sync math matters
+  less here than for a looping track, but the upload/broadcast plumbing
+  carries over directly. Music (looping, one at a time) and soundboard
+  (short, layers on top, can overlap) are different enough to stay separate
+  concepts rather than folding one into the other.
 
 ## Bigger bets (long-term, multi-PR projects)
 
@@ -57,6 +68,28 @@ relevant bits per question (basic RAG) rather than expecting a small model
 to "remember" a whole campaign unprompted. If quality isn't good enough
 after that, a 13-14B model (e.g. Qwen2.5 14B) is the next step up, but
 worth trying the smaller option with good context retrieval first.
+
+### 3D hologram dice + cockpit set dressing
+
+Replace (or sit alongside) the current CSS tumble animation with real 3D
+dice rendered in WebGL - modeled in Blender, exported as GLB/GLTF, loaded
+into a `three.js` (or `react-three-fiber`) canvas overlaid on the board.
+Same underlying trust model as today: the server stays authoritative for
+the actual rolled value, the 3D layer is purely presentational and animates
+toward that known result, same as the existing tumble animation just on a
+real engine instead of CSS transforms. Holographic look (rim glow,
+scanlines, transparency) would be custom GLSL shader materials rather than
+CSS filters. The same GLB pipeline doubles as a way to add flashier cockpit
+set-dressing (panelling, trim) around the sci-fi theme's board chrome, since
+it's just more Blender-authored geometry dropped into the same scene.
+
+Real cost is the new dependency + asset pipeline + shader work, plus now
+having to care about bundle size and WebGL performance on whatever laptops
+the table's actually using - worth a small spike on a single die shape
+(a d20) before committing to rebuilding the whole dice panel around it. A
+cheaper middle ground exists too: pre-render an animation in Blender as a
+transparent video/sprite sequence and just overlay it - much less flashy
+(fixed animation, no per-roll variation) but zero runtime 3D engine needed.
 
 ### Voice chat
 
