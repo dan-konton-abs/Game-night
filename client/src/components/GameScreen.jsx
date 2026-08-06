@@ -38,6 +38,7 @@ export default function GameScreen({
 }) {
   const me = room.players[playerId];
   const isGM = room.gmPlayerId === playerId;
+  const isScifi = room.theme === "scifi";
   const [tab, setTab] = useState("chat");
   const [rulesKeeperOpen, setRulesKeeperOpen] = useState(false);
   const [viewCharacterId, setViewCharacterId] = useState(playerId);
@@ -180,8 +181,19 @@ export default function GameScreen({
         />
       )}
 
-      <div className="game-body">
-        <Board room={room} playerId={playerId} isGM={isGM} diceQuality={dice3dQuality} />
+      <div className={`game-body ${isScifi ? "cockpit-shell cockpit-shell--console" : ""}`} data-grime={isScifi ? "dirty" : undefined}>
+        {isScifi ? (
+          <div className="cockpit-map">
+            <div className="cockpit-viewport">
+              <div className="cockpit-viewport-inner">
+                <Board room={room} playerId={playerId} isGM={isGM} diceQuality={dice3dQuality} />
+                <div className="cockpit-sweep" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <Board room={room} playerId={playerId} isGM={isGM} diceQuality={dice3dQuality} />
+        )}
 
         <div
           className="sidebar-resize-handle"
@@ -191,7 +203,8 @@ export default function GameScreen({
           title="Drag to resize"
         />
 
-        <aside className="sidebar" style={{ width: sidebarWidth }}>
+        <aside className={`sidebar ${isScifi ? "cockpit-sidebar" : ""}`} style={{ width: sidebarWidth }} data-grime={isScifi ? "dirty" : undefined}>
+          {isScifi && <div className="cockpit-rivets" data-grime="dirty" />}
           <nav className="tabs">
             {tabs.map((t) => (
               <button key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
@@ -202,7 +215,7 @@ export default function GameScreen({
             ))}
           </nav>
 
-          <div className="tab-content">
+          <div className={`tab-content ${isScifi ? "cockpit-panel" : ""}`}>
             {tab === "chat" && (
               <ChatPanel
                 room={room}

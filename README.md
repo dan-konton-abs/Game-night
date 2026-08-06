@@ -170,6 +170,19 @@ over-engineered. Ideate and extend from here.
   first). Admin status is computed from the env var on every request, not
   stored on the account, so there's nothing to accidentally leave lying
   around with elevated access.
+- **3D dice pop-up.** Any roll (D&D-style, Alien RPG stress pools, Blade
+  Runner) can briefly play a real 3D dice-tumble animation over the map,
+  visible to everyone in the room regardless of which tab they're on —
+  landed on the same result the 2D tray/log already show (the animation is
+  purely presentational; the server still decides the actual roll). A
+  setting next to the dice-skin picker (Off / Potato / High) controls it per
+  person, since it's a WebGL canvas and not every laptop at the table needs
+  to render it. Off keeps everything exactly as before.
+- **Sci-fi cockpit surround.** The sci-fi theme's board and sidebar sit
+  inside an armoured console housing — rivets, a rounded CRT bezel with a
+  slow refresh sweep, grime overlay — layered on top of the existing
+  terminal-green styling rather than replacing it. Classic theme is
+  completely unaffected.
 
 Not in the MVP (good candidates for v2+): measuring/rulers, map layers,
 per-token vision, richer character sheet templates per system. See
