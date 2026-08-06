@@ -53,6 +53,20 @@ function blankMusic() {
   return { url: null, name: null, playing: false, loop: true, startedAt: null };
 }
 
+// The soundboard is nine fixed one-shot SFX slots, room-level like music.
+// Unlike music there's no "playing" state to track here - a play is a
+// one-off event broadcast straight to the room (see index.js), not
+// something that needs to survive a reconnect or a page reload.
+const SOUNDBOARD_SLOTS = 9;
+
+function blankSoundboardSlot(index) {
+  return { label: `Slot ${index + 1}`, audioPath: null, fileName: null };
+}
+
+function blankSoundboard() {
+  return Array.from({ length: SOUNDBOARD_SLOTS }, (_, i) => blankSoundboardSlot(i));
+}
+
 /** @type {Map<string, object>} in-memory authoritative room state, keyed by room code */
 const rooms = new Map();
 const saveTimers = new Map();
@@ -102,6 +116,7 @@ function blankRoom(code) {
       fog: blankFog(),
     },
     music: blankMusic(),
+    soundboard: blankSoundboard(),
     tokens: {},
     characters: {},
     players: {},
@@ -163,6 +178,9 @@ function ensureLoaded(code) {
       if (!scene.board.gridShape) scene.board.gridShape = "square";
     }
     if (!loaded.music) loaded.music = blankMusic();
+    if (!Array.isArray(loaded.soundboard) || loaded.soundboard.length !== SOUNDBOARD_SLOTS) {
+      loaded.soundboard = blankSoundboard();
+    }
     rooms.set(code, loaded);
     return loaded;
   }
@@ -226,5 +244,6 @@ module.exports = {
   listRoomsForUser,
   ensureFog,
   blankRulesKeeper,
+  blankSoundboardSlot,
   newId: nanoid,
 };

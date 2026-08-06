@@ -680,6 +680,63 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
+  // The soundboard: nine fixed one-shot SFX slots the GM can fire on top of
+  // whatever else is playing. Label/audio are room state (persisted, GM-only
+  // to edit); a play itself is a one-off event broadcast straight to every
+  // socket in the room rather than something stored in room state - there's
+  // nothing to sync a late joiner into, it either catches the moment or not.
+  const isValidSoundboardIndex = (i) => Number.isInteger(i) && i >= 0 && i < 9;
+
+  socket.on("soundboard:setLabel", ({ index, label }) => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can edit the soundboard.");
+    const i = Number(index);
+    if (!isValidSoundboardIndex(i) || !room.soundboard[i]) return;
+
+    room.soundboard[i].label = clampText(label, 60).trim() || `Slot ${i + 1}`;
+    broadcast(room);
+  });
+
+  socket.on("soundboard:setAudio", ({ index, url, fileName }) => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can edit the soundboard.");
+    const i = Number(index);
+    if (!isValidSoundboardIndex(i) || !room.soundboard[i]) return;
+    const cleanUrl = clampText(url, 500);
+    if (!cleanUrl.startsWith("/uploads/")) return publicError(socket, "Upload an audio file first.");
+
+    room.soundboard[i].audioPath = cleanUrl;
+    room.soundboard[i].fileName = clampText(fileName, 200) || "Sound";
+    broadcast(room);
+  });
+
+  socket.on("soundboard:clear", ({ index }) => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can edit the soundboard.");
+    const i = Number(index);
+    if (!isValidSoundboardIndex(i) || !room.soundboard[i]) return;
+
+    room.soundboard[i] = store.blankSoundboardSlot(i);
+    broadcast(room);
+  });
+
+  socket.on("soundboard:play", ({ index }) => {
+    const room = currentRoom();
+    if (!room) return;
+    if (!isGM(room, socket.data.playerId)) return publicError(socket, "Only the Game Master can trigger the soundboard.");
+    const i = Number(index);
+    if (!isValidSoundboardIndex(i) || !room.soundboard[i]) return;
+    const slot = room.soundboard[i];
+    if (!slot.audioPath) return;
+
+    // Everyone in the room, including the GM's own client - not part of the
+    // persisted room:state broadcast since there's no ongoing state to sync.
+    io.to(room.code).emit("soundboard:play", { url: slot.audioPath });
+  });
+
   socket.on("token:add", (token) => {
     const room = currentRoom();
     if (!room) return;

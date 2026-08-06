@@ -2,6 +2,12 @@ import React, { useState } from "react";
 import { socket } from "../socket.js";
 import { deleteGame } from "../games.js";
 import { THEMES } from "../themes.js";
+import { SOUNDBOARD_VOLUME_KEY } from "../soundboard.js";
+
+function loadSoundVolume() {
+  const stored = Number(localStorage.getItem(SOUNDBOARD_VOLUME_KEY));
+  return Number.isFinite(stored) && stored >= 0 && stored <= 1 ? stored : 0.7;
+}
 
 export default function GMPanel({ room }) {
   const [bgUrl, setBgUrl] = useState(room.board.backgroundUrl || "");
@@ -11,6 +17,9 @@ export default function GMPanel({ room }) {
   const [rulebookUploading, setRulebookUploading] = useState(false);
   const [musicUrl, setMusicUrl] = useState(room.music.url || "");
   const [musicUploading, setMusicUploading] = useState(false);
+  const [soundLabels, setSoundLabels] = useState(() => room.soundboard.map((s) => s.label));
+  const [soundUploadingIndex, setSoundUploadingIndex] = useState(null);
+  const [soundVolume, setSoundVolume] = useState(loadSoundVolume);
 
   function applyBackground(url) {
     socket.emit("board:update", { backgroundUrl: url });
@@ -93,6 +102,60 @@ export default function GMPanel({ room }) {
       setMusicUploading(false);
       e.target.value = "";
     }
+  }
+
+  function commitSoundLabel(index) {
+    const label = (soundLabels[index] ?? "").trim();
+    if (label && label !== room.soundboard[index].label) {
+      socket.emit("soundboard:setLabel", { index, label });
+    } else if (!label) {
+      // Blanking it out just falls back to the default - nothing to send
+      // that setLabel wouldn't already do itself for an empty string, but
+      // keep the local draft in sync so the input doesn't stay empty.
+      setSoundLabels((prev) => {
+        const next = [...prev];
+        next[index] = room.soundboard[index].label;
+        return next;
+      });
+    }
+  }
+
+  async function onSoundFileChange(index, e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSoundUploadingIndex(index);
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (data.url) {
+        socket.emit("soundboard:setAudio", { index, url: data.url, fileName: file.name });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSoundUploadingIndex(null);
+      e.target.value = "";
+    }
+  }
+
+  function clearSoundSlot(index) {
+    socket.emit("soundboard:clear", { index });
+    setSoundLabels((prev) => {
+      const next = [...prev];
+      next[index] = `Slot ${index + 1}`;
+      return next;
+    });
+  }
+
+  function playSound(index) {
+    socket.emit("soundboard:play", { index });
+  }
+
+  function changeSoundVolume(value) {
+    setSoundVolume(value);
+    localStorage.setItem(SOUNDBOARD_VOLUME_KEY, String(value));
   }
 
   function clearAllTokens() {
@@ -263,6 +326,65 @@ export default function GMPanel({ room }) {
         />
         Loop
       </label>
+
+      <h3>Soundboard</h3>
+      <p className="hint">
+        One-shot sound effects - everyone in the room hears them the instant you hit Play, layered
+        on top of the ambient track with no ducking. Players never see this panel; there's no
+        indication on their end beyond the sound itself.
+      </p>
+      <label>
+        Your volume for these sounds ({Math.round(soundVolume * 100)}%)
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={soundVolume}
+          onChange={(e) => changeSoundVolume(Number(e.target.value))}
+        />
+      </label>
+      <p className="hint">Only affects how loud they play back on your own screen.</p>
+      <div className="soundboard-grid">
+        {room.soundboard.map((slot, i) => (
+          <div key={i} className="soundboard-slot">
+            <input
+              className="soundboard-slot-label"
+              value={soundLabels[i] ?? slot.label}
+              onChange={(e) =>
+                setSoundLabels((prev) => {
+                  const next = [...prev];
+                  next[i] = e.target.value;
+                  return next;
+                })
+              }
+              onBlur={() => commitSoundLabel(i)}
+              maxLength={60}
+            />
+            <span className="soundboard-slot-file" title={slot.fileName || ""}>
+              {slot.fileName || "No sound loaded"}
+            </span>
+            <label className="file-label small">
+              {slot.audioPath ? "Replace" : "Upload"}
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={(e) => onSoundFileChange(i, e)}
+                disabled={soundUploadingIndex === i}
+              />
+            </label>
+            {soundUploadingIndex === i && <span className="hint small">Uploading…</span>}
+            <div className="soundboard-slot-actions">
+              <button type="button" className="primary small" disabled={!slot.audioPath} onClick={() => playSound(i)}>
+                ▶ Play
+              </button>
+              <button type="button" className="small" disabled={!slot.audioPath} onClick={() => clearSoundSlot(i)}>
+                Clear
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <h3>Scenes</h3>
       <p className="hint">

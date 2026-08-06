@@ -1901,3 +1901,66 @@ fieldset {
    still work under the new ::after scanline overlay. */
 .cockpit-sidebar .tabs { margin-left: 10px; }
 .cockpit-sidebar .tab-content.cockpit-panel { margin-left: 10px; }
+
+/* ---------- GM soundboard ---------- */
+
+.soundboard-grid {
+  display: grid;
+  /* minmax(0, 1fr) rather than plain 1fr - a native <input type="file">'s
+     intrinsic minimum width otherwise forces each column wider than the
+     sidebar, silently clipping the third column since .tab-content only
+     scrolls vertically. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.soundboard-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  min-width: 0;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.soundboard-slot-label {
+  width: 100%;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 3px 4px;
+}
+
+.soundboard-slot-file {
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.soundboard-slot .file-label {
+  display: block;
+  font-size: 0.75rem;
+}
+
+.soundboard-slot .file-label input {
+  display: block;
+  width: 100%;
+}
+
+.soundboard-slot-actions {
+  /* Side-by-side doesn't fit "Play" and "Clear" at a 3-column width - each
+     slot is well under 100px wide at the sidebar's default size. */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.soundboard-slot-actions button {
+  width: 100%;
+}

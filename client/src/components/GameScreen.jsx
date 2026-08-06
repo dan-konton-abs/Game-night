@@ -9,6 +9,7 @@ import InitiativePanel from "./InitiativePanel.jsx";
 import GMPanel from "./GMPanel.jsx";
 import LockerPanel from "./LockerPanel.jsx";
 import RulesKeeperModal from "./RulesKeeperModal.jsx";
+import SoundboardPlayer from "./SoundboardPlayer.jsx";
 
 const SIDEBAR_WIDTH_KEY = "gamenight:sidebarWidth";
 const SIDEBAR_MIN = 280;
@@ -172,6 +173,8 @@ export default function GameScreen({
           My Games
         </button>
       </header>
+
+      <SoundboardPlayer />
 
       {rulesKeeperOpen && (
         <RulesKeeperModal
