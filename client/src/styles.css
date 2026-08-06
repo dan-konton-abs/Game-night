@@ -399,6 +399,30 @@ label {
   margin-left: auto;
 }
 
+.music-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.music-track {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-mute {
+  padding: 2px 6px;
+}
+
+.music-volume {
+  width: 70px;
+}
+
 .game-body {
   flex: 1;
   display: flex;

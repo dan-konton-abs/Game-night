@@ -9,6 +9,8 @@ export default function GMPanel({ room }) {
   const [deleting, setDeleting] = useState(false);
   const [newSceneName, setNewSceneName] = useState("");
   const [rulebookUploading, setRulebookUploading] = useState(false);
+  const [musicUrl, setMusicUrl] = useState(room.music.url || "");
+  const [musicUploading, setMusicUploading] = useState(false);
 
   function applyBackground(url) {
     socket.emit("board:update", { backgroundUrl: url });
@@ -58,6 +60,39 @@ export default function GMPanel({ room }) {
   function removeRulebook() {
     if (!confirm("Remove the loaded rulebook? This also clears everyone's conversation with the Keeper.")) return;
     socket.emit("rulesKeeper:remove");
+  }
+
+  function trackNameFromUrl(url) {
+    try {
+      return decodeURIComponent(url.split("/").pop().split("?")[0]) || "Track";
+    } catch {
+      return "Track";
+    }
+  }
+
+  function applyMusicUrl(url) {
+    socket.emit("music:update", { url, name: url ? trackNameFromUrl(url) : null });
+  }
+
+  async function onMusicFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMusicUploading(true);
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (data.url) {
+        setMusicUrl(data.url);
+        socket.emit("music:update", { url: data.url, name: file.name });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setMusicUploading(false);
+      e.target.value = "";
+    }
   }
 
   function clearAllTokens() {
@@ -185,6 +220,49 @@ export default function GMPanel({ room }) {
         the map's own printed grid (if it has one) with the grid above, independent of everyone's
         personal zoom.
       </p>
+
+      <h3>Ambient Music</h3>
+      <p className="hint">
+        Set a soundtrack for the table - it loops quietly in the background for everyone. Playback
+        controls live in a small bar at the top of the screen once a track is set.
+      </p>
+      <label>
+        Audio URL
+        <div className="inline-row">
+          <input value={musicUrl} onChange={(e) => setMusicUrl(e.target.value)} placeholder="https://…" />
+          <button type="button" onClick={() => applyMusicUrl(musicUrl)}>
+            Set
+          </button>
+        </div>
+      </label>
+      <label className="file-label">
+        Or upload an audio file
+        <input type="file" accept="audio/*" onChange={onMusicFileChange} disabled={musicUploading} />
+      </label>
+      {musicUploading && <p className="hint">Uploading…</p>}
+      {room.music.url && (
+        <p className="hint">
+          Now set: {room.music.name || "Track"}{" "}
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => {
+              setMusicUrl("");
+              applyMusicUrl("");
+            }}
+          >
+            Remove
+          </button>
+        </p>
+      )}
+      <label className="inline-row">
+        <input
+          type="checkbox"
+          checked={room.music.loop}
+          onChange={(e) => socket.emit("music:update", { loop: e.target.checked })}
+        />
+        Loop
+      </label>
 
       <h3>Scenes</h3>
       <p className="hint">

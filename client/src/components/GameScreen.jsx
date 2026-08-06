@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import Board from "./Board.jsx";
+import MusicBar from "./MusicBar.jsx";
 import ChatPanel from "./ChatPanel.jsx";
 import DicePanel from "./DicePanel.jsx";
 import CharacterSheet from "./CharacterSheet.jsx";
@@ -163,6 +164,7 @@ export default function GameScreen({
         <div className="me">
           {me?.name || identity.name} {isGM ? "(Game Master)" : ""}
         </div>
+        <MusicBar room={room} isGM={isGM} />
         <button className="link-button rules-keeper-trigger" onClick={() => setRulesKeeperOpen(true)}>
           📖 Instructions
         </button>
