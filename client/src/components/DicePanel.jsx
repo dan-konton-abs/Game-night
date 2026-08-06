@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { socket } from "../socket.js";
+import { diceFromEntry } from "../diceShapes.js";
 
 const QUICK_DICE = [4, 6, 8, 10, 12, 20, 100];
 const MAX_DICE = 20;
@@ -28,26 +29,6 @@ function timeAgo(ts) {
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
   return `${hrs}h ago`;
-}
-
-function sidesFromFormula(formula) {
-  const match = /d(\d+)/i.exec(formula);
-  return match ? Number(match[1]) : 20;
-}
-
-/** Normalizes either roll type into a flat list of { sides, value, variant }. */
-function diceFromEntry(entry) {
-  if (entry.mode === "alien") {
-    return [
-      ...entry.baseRolls.map((v) => ({ sides: 6, value: v, variant: "base" })),
-      ...entry.stressRolls.map((v) => ({ sides: 6, value: v, variant: "stress" })),
-    ];
-  }
-  if (entry.mode === "br") {
-    return entry.rolls.map((r) => ({ sides: r.sides, value: r.value, variant: "br" }));
-  }
-  const sides = sidesFromFormula(entry.formula);
-  return entry.rolls.map((v) => ({ sides, value: v, variant: "normal" }));
 }
 
 function DieFace({ sides, value, variant, spinning, skin = "pips" }) {
@@ -180,7 +161,13 @@ function DiceTray({ entry, skin, playerId, onPush }) {
   );
 }
 
-export default function DicePanel({ room, playerId }) {
+const DICE_3D_OPTIONS = [
+  { id: "off", label: "Off (2D tray only)" },
+  { id: "low", label: "Potato (lighter on the GPU)" },
+  { id: "high", label: "High" },
+];
+
+export default function DicePanel({ room, playerId, dice3dQuality, onChangeDice3dQuality }) {
   const [mode, setMode] = useState(() => localStorage.getItem(MODE_KEY) || "dnd");
   const [skin, setSkin] = useState(() => localStorage.getItem(SKIN_KEY) || "pips");
   const [formula, setFormula] = useState("1d20");
@@ -280,6 +267,17 @@ export default function DicePanel({ room, playerId }) {
           </select>
         </label>
       )}
+
+      <label>
+        3D dice pop-up (over the map, for everyone)
+        <select value={dice3dQuality} onChange={(e) => onChangeDice3dQuality(e.target.value)}>
+          {DICE_3D_OPTIONS.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
 
       {mode === "dnd" ? (
         <>

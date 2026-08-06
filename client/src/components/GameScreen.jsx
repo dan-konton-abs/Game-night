@@ -13,11 +13,17 @@ const SIDEBAR_WIDTH_KEY = "gamenight:sidebarWidth";
 const SIDEBAR_MIN = 280;
 const SIDEBAR_MAX = 640;
 const SIDEBAR_DEFAULT = 340;
+const DICE_3D_QUALITY_KEY = "gamenight:dice3dQuality";
 
 function loadSidebarWidth() {
   const stored = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
   if (!stored || Number.isNaN(stored)) return SIDEBAR_DEFAULT;
   return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, stored));
+}
+
+function loadDice3dQuality() {
+  const stored = localStorage.getItem(DICE_3D_QUALITY_KEY);
+  return ["off", "low", "high"].includes(stored) ? stored : "high";
 }
 
 export default function GameScreen({
@@ -32,6 +38,7 @@ export default function GameScreen({
 }) {
   const me = room.players[playerId];
   const isGM = room.gmPlayerId === playerId;
+  const isScifi = room.theme === "scifi";
   const [tab, setTab] = useState("chat");
   const [rulesKeeperOpen, setRulesKeeperOpen] = useState(false);
   const [viewCharacterId, setViewCharacterId] = useState(playerId);
@@ -40,6 +47,12 @@ export default function GameScreen({
   const baselineCapturedRef = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth);
   const resizeStartRef = useRef(null);
+  const [dice3dQuality, setDice3dQuality] = useState(loadDice3dQuality);
+
+  function changeDice3dQuality(next) {
+    setDice3dQuality(next);
+    localStorage.setItem(DICE_3D_QUALITY_KEY, next);
+  }
 
   // Treat all history that already exists once we've fully loaded (including
   // whisper history, which arrives a moment after room:state) as "seen", so
@@ -168,8 +181,19 @@ export default function GameScreen({
         />
       )}
 
-      <div className="game-body">
-        <Board room={room} playerId={playerId} isGM={isGM} />
+      <div className={`game-body ${isScifi ? "cockpit-shell cockpit-shell--console" : ""}`} data-grime={isScifi ? "dirty" : undefined}>
+        {isScifi ? (
+          <div className="cockpit-map">
+            <div className="cockpit-viewport">
+              <div className="cockpit-viewport-inner">
+                <Board room={room} playerId={playerId} isGM={isGM} diceQuality={dice3dQuality} />
+                <div className="cockpit-sweep" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <Board room={room} playerId={playerId} isGM={isGM} diceQuality={dice3dQuality} />
+        )}
 
         <div
           className="sidebar-resize-handle"
@@ -179,7 +203,8 @@ export default function GameScreen({
           title="Drag to resize"
         />
 
-        <aside className="sidebar" style={{ width: sidebarWidth }}>
+        <aside className={`sidebar ${isScifi ? "cockpit-sidebar" : ""}`} style={{ width: sidebarWidth }} data-grime={isScifi ? "dirty" : undefined}>
+          {isScifi && <div className="cockpit-rivets" data-grime="dirty" />}
           <nav className="tabs">
             {tabs.map((t) => (
               <button key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
@@ -190,7 +215,7 @@ export default function GameScreen({
             ))}
           </nav>
 
-          <div className="tab-content">
+          <div className={`tab-content ${isScifi ? "cockpit-panel" : ""}`}>
             {tab === "chat" && (
               <ChatPanel
                 room={room}
@@ -202,7 +227,14 @@ export default function GameScreen({
                 unreadWhispers={unreadWhispers}
               />
             )}
-            {tab === "dice" && <DicePanel room={room} playerId={playerId} />}
+            {tab === "dice" && (
+              <DicePanel
+                room={room}
+                playerId={playerId}
+                dice3dQuality={dice3dQuality}
+                onChangeDice3dQuality={changeDice3dQuality}
+              />
+            )}
             {tab === "initiative" && <InitiativePanel room={room} playerId={playerId} isGM={isGM} />}
             {tab === "character" && (
               <CharacterSheet

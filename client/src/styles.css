@@ -1665,3 +1665,215 @@ fieldset {
   margin-top: 8px;
   align-self: flex-start;
 }
+
+/* ---------- 3D dice pop-up ---------- */
+
+.dice-stage-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.dice-stage-visible {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.dice-stage-overlay canvas {
+  display: block;
+  width: min(720px, 86%);
+  height: min(420px, 70%);
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- Sci-fi cockpit surround ----------
+   From a handed-off prototype. Class names below are only ever rendered in
+   JSX when room.theme === "scifi" (see GameScreen.jsx), so nothing here
+   needs its own [data-theme="scifi"] guard - the Classic theme never sees
+   these classes at all. */
+
+.cockpit-shell {
+  position: relative;
+  display: flex;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  color: #7dffb3;
+  background: linear-gradient(178deg, #1a1c19 0%, #121412 42%, #0b0d0c 100%);
+  overflow: hidden;
+  /* The prototype used a fixed min-height:700px standalone demo box; here
+     .cockpit-shell replaces .game-body itself, which needs to stay flex:1
+     inside the existing column layout instead. */
+  flex: 1;
+  min-height: 0;
+}
+
+.cockpit-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  background:
+    radial-gradient(58% 42% at 12% 8%, rgba(0, 0, 0, 0.85), transparent 70%),
+    radial-gradient(44% 60% at 92% 74%, rgba(0, 0, 0, 0.8), transparent 72%),
+    radial-gradient(30% 22% at 62% 4%, rgba(120, 90, 40, 0.55), transparent 70%),
+    radial-gradient(22% 30% at 4% 78%, rgba(90, 70, 30, 0.5), transparent 70%),
+    repeating-linear-gradient(96deg, rgba(0, 0, 0, 0.22) 0 2px, transparent 2px 9px);
+}
+.cockpit-shell[data-grime="clean"]::after   { opacity: 0.28; }
+.cockpit-shell[data-grime="dirty"]::after   { opacity: 0.62; }
+.cockpit-shell[data-grime="wrecked"]::after { opacity: 0.92; }
+
+.cockpit-map {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 14px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---------- Bulkhead variant (default): armoured viewport, angular ---------- */
+
+.cockpit-viewport {
+  position: relative;
+  flex: 1;
+  padding: 10px;
+  background: linear-gradient(168deg, #2b2f2a 0%, #1d211d 38%, #141714 100%);
+  clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+  box-shadow: inset 0 2px 0 rgba(190, 205, 185, 0.14), inset 0 -3px 8px rgba(0, 0, 0, 0.8);
+  display: flex;
+  min-height: 0;
+}
+/* Rivet strips on all four edges - radial-gradient dot pattern, no images. */
+.cockpit-viewport::before,
+.cockpit-viewport::after {
+  content: '';
+  position: absolute;
+  background-image: radial-gradient(circle at 3px 3px, #6d7568 0 2.2px, #171a16 2.4px, transparent 3px);
+  z-index: 1;
+}
+.cockpit-viewport::before { left: 34px; right: 34px; top: 6px; height: 6px; background-size: 26px 6px; }
+.cockpit-viewport::after  { left: 34px; right: 34px; bottom: 6px; height: 6px; background-size: 26px 6px; }
+
+.cockpit-viewport-inner {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 380px;
+  min-width: 0;
+  background: #000603;
+  box-shadow: inset 0 0 0 2px #0f3b25, inset 0 0 40px rgba(0, 0, 0, 0.95), 0 0 34px rgba(51, 255, 122, 0.10);
+  overflow: hidden;
+}
+.cockpit-viewport-inner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: repeating-linear-gradient(0deg, rgba(51, 255, 122, 0.055) 0 1px, transparent 1px 3px),
+    radial-gradient(120% 100% at 50% 50%, transparent 52%, rgba(0, 0, 0, 0.85) 100%);
+}
+
+/* ---------- Console variant: CRT sunk into a rounded instrument housing ---------- */
+
+.cockpit-shell--console .cockpit-viewport {
+  border-radius: 22px;
+  clip-path: none;
+  padding: 14px;
+  background: linear-gradient(172deg, #24261f 0%, #16180f 55%, #0d0f0a 100%);
+  box-shadow: inset 0 3px 0 rgba(200, 210, 180, 0.12), inset 0 -6px 14px rgba(0, 0, 0, 0.85), 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+.cockpit-shell--console .cockpit-viewport::before,
+.cockpit-shell--console .cockpit-viewport::after {
+  content: none; /* no rivets on the console bezel */
+}
+.cockpit-shell--console .cockpit-viewport-inner {
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 6px #0a0c08, inset 0 0 0 8px #2b3126, inset 0 0 70px rgba(0, 0, 0, 0.95), 0 0 46px rgba(51, 255, 122, 0.14);
+  animation: cockpit-crt-flicker 7s linear infinite;
+}
+.cockpit-shell--console .cockpit-viewport-inner::after {
+  border-radius: 16px;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.34) 0 1px, transparent 1px 3px),
+    radial-gradient(115% 92% at 50% 48%, transparent 46%, rgba(0, 0, 0, 0.9) 100%);
+}
+.cockpit-shell--console .cockpit-sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 90px;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(180deg, transparent, rgba(51, 255, 122, 0.10), transparent);
+  animation: cockpit-sweep 6s linear infinite;
+}
+
+@keyframes cockpit-crt-flicker { 0%, 96%, 100% { opacity: 1; } 97% { opacity: 0.88; } 98.5% { opacity: 0.96; } }
+@keyframes cockpit-sweep { from { transform: translateY(-120%); } to { transform: translateY(820%); } }
+@keyframes cockpit-blip { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+/* ---------- Sidebar ---------- */
+
+.cockpit-sidebar {
+  position: relative;
+  flex: none;
+  padding: 14px 16px 16px;
+  background: linear-gradient(180deg, #191b17 0%, #0f110e 100%);
+  box-shadow: inset 6px 0 14px rgba(0, 0, 0, 0.7), inset 1px 0 0 rgba(190, 205, 185, 0.10);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+}
+.cockpit-rivets {
+  position: absolute;
+  left: 4px;
+  top: 20px;
+  bottom: 20px;
+  width: 6px;
+  background-image: radial-gradient(circle at 3px 3px, #6d7568 0 2.2px, #171a16 2.4px, transparent 3px);
+  background-size: 6px 26px;
+}
+.cockpit-rivets[data-grime="clean"]   { opacity: 0.5; }
+.cockpit-rivets[data-grime="dirty"]   { opacity: 0.8; }
+.cockpit-rivets[data-grime="wrecked"] { opacity: 1; }
+
+.cockpit-panel {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.cockpit-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-linear-gradient(0deg, rgba(51, 255, 122, 0.05) 0 1px, transparent 1px 3px);
+}
+
+/* Small text accents used throughout - labels, room codes, status dots */
+.cockpit-label       { font-size: 11px; letter-spacing: 0.2em; color: #338258; }
+.cockpit-value       { color: #7dffb3; }
+.cockpit-glow-text   { color: #7dffb3; text-shadow: 0 0 12px rgba(51, 255, 122, 0.45); }
+.cockpit-status-dot  { width: 7px; height: 7px; border-radius: 50%; background: #33ff7a; box-shadow: 0 0 8px #33ff7a; animation: cockpit-blip 2.4s ease-in-out infinite; display: inline-block; }
+
+/* Rivets sit inside the existing padded sidebar, and the tab rail/panel
+   content are the app's real markup (unchanged) - just give them a little
+   breathing room clear of the rivet strip and let the panel's own scrolling
+   still work under the new ::after scanline overlay. */
+.cockpit-sidebar .tabs { margin-left: 10px; }
+.cockpit-sidebar .tab-content.cockpit-panel { margin-left: 10px; }

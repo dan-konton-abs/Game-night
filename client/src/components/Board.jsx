@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { socket } from "../socket.js";
 import TokenEditor from "./TokenEditor.jsx";
+import DiceStageOverlay from "./DiceStageOverlay.jsx";
 
 const PALETTE = ["#5b8def", "#e2574c", "#4caf7d", "#e8a83c", "#9b6bd9", "#41b3c2"];
 const ZOOM_MIN = 0.5;
@@ -40,7 +41,7 @@ function hexGridBackground(cellWidth, color) {
   };
 }
 
-export default function Board({ room, playerId, isGM }) {
+export default function Board({ room, playerId, isGM, diceQuality }) {
   const containerRef = useRef(null);
   const viewportRef = useRef(null);
   const [dragTokenId, setDragTokenId] = useState(null);
@@ -459,6 +460,8 @@ export default function Board({ room, playerId, isGM }) {
             )}
           </div>
         </div>
+
+        <DiceStageOverlay room={room} quality={diceQuality} />
 
         {isMyTurn && (
           <div className="turn-notification">
